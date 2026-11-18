@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>دستیار صوتی سیستم عامل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --surface2:#eaf0ec; --ink:#15211c; --muted:#5a6b62;
+  --line:#d7e0da; --accent:#0e7569; --accent-ink:#ffffff; --amber:#b97a0f; --amber-bg:#fdf3dd;
+  --danger:#b3352c; --ok:#177245; --chip:#e6efea; --shadow:0 10px 30px rgba(21,33,28,.10);
+  --radius:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b100e; --surface:#141c18; --surface2:#1a2520; --ink:#eef4f0; --muted:#9db3a8;
+    --line:#2a3a32; --accent:#2bb7a4; --accent-ink:#06231e; --amber:#e0a83e; --amber-bg:#2b2110;
+    --danger:#ff8a7a; --ok:#5fd598; --chip:#1d2b24; --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Vazirmatn",Tahoma,system-ui,sans-serif;line-height:1.9;font-size:16px}
+button,[role="button"],select,summary,input:not([type="checkbox"]){min-height:2.75rem}
+.wrap{max-width:860px;margin:0 auto;padding:16px 16px 56px}
+h1{font-size:1.55rem;font-weight:900;line-height:1.5;margin:10px 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:.98rem}
+h2{font-size:1.2rem;font-weight:800;margin:30px 0 10px}
+h3{font-size:1.02rem;font-weight:800;margin:0 0 6px}
+p{margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+/* ---------- Voice console ---------- */
+.console{text-align:center;padding:26px 18px 20px}
+.orb-wrap{display:flex;justify-content:center;margin:6px 0 14px}
+.orb{width:132px;height:132px;border-radius:50%;border:none;cursor:pointer;position:relative;
+  background:var(--accent);color:var(--accent-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:inherit;box-shadow:0 12px 32px rgba(14,117,105,.35);transition:transform .15s}
+.orb:active{transform:scale(.97)}
+.orb svg{width:44px;height:44px}
+.orb .orb-label{font-size:.82rem;font-weight:800}
+.orb::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid var(--accent);opacity:0}
+body.listening .orb::after{animation:pulse 1.6s ease-out infinite}
+body.speaking .orb{background:var(--amber)}
+@keyframes pulse{0%{transform:scale(.92);opacity:.7}100%{transform:scale(1.18);opacity:0}}
+@media (prefers-reduced-motion: reduce){body.listening .orb::after{animation:none;opacity:.5}}
+.status{font-size:1.12rem;font-weight:800;min-height:2.2em}
+.status small{display:block;font-weight:500;color:var(--muted);font-size:.88rem}
+.wake-hint{display:inline-block;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);
+  border-radius:999px;padding:4px 16px;font-weight:800;font-size:.92rem;margin:4px 0 10px}
+.live-box{background:var(--surface2);border-radius:12px;padding:12px 14px;min-height:64px;text-align:right;margin-top:12px}
+.live-box .lbl{font-size:.78rem;color:var(--muted);font-weight:700}
+.live-text{font-weight:600}
+.live-text.interim{color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;
+  padding:10px 18px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;min-height:48px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn:active{transform:scale(.98)}
+.settings{display:flex;flex-wrap:wrap;gap:14px 22px;justify-content:center;margin-top:16px;font-size:.9rem;color:var(--muted)}
+.settings label{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 2px;min-height:44px}
+.settings input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}
+.settings input[type="range"]{width:130px;accent-color:var(--accent)}
+.unsupported{display:none;background:var(--amber-bg);border:1px solid var(--amber);color:var(--ink);
+  border-radius:12px;padding:12px 14px;margin-top:14px;text-align:right;font-size:.92rem}
+.unsupported.show{display:block}
+/* ---------- Answer / log ---------- */
+.answer-box{display:none;background:var(--surface2);border-radius:12px;padding:14px 16px;margin-top:14px;text-align:right}
+.answer-box.show{display:block}
+.answer-box .q{font-weight:800;color:var(--accent)}
+.answer-box .a{white-space:pre-wrap}
+.log{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.log-item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:right}
+.log-item .who{font-size:.76rem;font-weight:800;color:var(--muted)}
+.log-item.me .who{color:var(--accent)}
+.log-item p{margin:2px 0 0;white-space:pre-wrap}
+/* ---------- Ask row ---------- */
+.ask-row{display:flex;gap:10px;flex-wrap:wrap}
+.ask-row input{flex:1 1 220px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;
+  font-family:inherit;font-size:1rem;background:var(--surface);color:var(--ink);min-height:48px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:999px;
+  padding:8px 16px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;min-height:44px}
+/* ---------- Diagram ---------- */
+.diagram{direction:ltr;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:14px 0 6px}
+.state{background:var(--surface2);border:2px solid var(--accent);border-radius:12px;padding:8px 14px;text-align:center;min-width:96px}
+.state b{display:block;font-size:.95rem}
+.state span{font-size:.74rem;color:var(--muted);direction:rtl;display:block}
+.arrow{color:var(--accent);font-weight:900;font-size:1.15rem;text-align:center}
+.arrow small{display:block;font-size:.66rem;color:var(--muted);font-weight:600;direction:rtl}
+.legend{font-size:.88rem;color:var(--muted)}
+/* ---------- Tables & lists ---------- */
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:right;vertical-align:top}
+@media (max-width:600px){
+  table,tbody,tr,td{display:block;width:100%}
+  table tr:first-child{display:none}
+  tr{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:10px;background:var(--surface2)}
+  td{border-bottom:none;padding:3px 0}
+  td:nth-child(3)::before{content:"انحصاری: ";color:var(--muted);font-size:.8rem;font-weight:700}
+  td:nth-child(4)::before{content:"نکته: ";color:var(--muted);font-size:.8rem;font-weight:700}
+}
+th{color:var(--muted);font-size:.8rem}
+td b{color:var(--accent)}
+.formula{background:var(--surface2);border-radius:10px;padding:10px 14px;font-weight:700;margin:8px 0;direction:rtl}
+.formula .ltr{direction:ltr;display:inline-block;font-family:ui-monospace,monospace}
+details{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:10px;padding:4px 14px}
+summary{cursor:pointer;font-weight:700;padding:10px 0;min-height:44px}
+details .body{padding-bottom:12px;font-size:.95rem}
+details .play{margin-top:6px}
+ol.steps{padding-right:20px;margin:0}
+ol.steps li{margin-bottom:8px}
+.note{font-size:.9rem;color:var(--muted)}
+.kbd{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:0 8px;font-weight:800;color:var(--amber)}
+footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:34px}
+/* ---------- Blind / hands-free mode ---------- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.start-card{background:var(--accent);color:var(--accent-ink);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 18px;text-align:center;width:calc(100% - 32px);max-width:828px;margin:16px auto 0}
+.start-card[hidden]{display:none}
+.start-card .big{font-size:1.35rem;font-weight:900;line-height:1.6}
+.start-card .small{font-size:.95rem;font-weight:600;line-height:1.9;opacity:.95;margin:8px 0 0}
+.start-card .big-btn{margin-top:16px;background:var(--surface);color:var(--ink);border:none;border-radius:999px;padding:14px 34px;font-weight:900;font-size:1.1rem;font-family:inherit;cursor:pointer;min-height:56px;width:100%;max-width:420px}
+.start-card .big-btn:active{transform:scale(.98)}
+.start-card .copy-btn{margin-top:10px;background:transparent;color:#ffffff;border:2px solid rgba(255,255,255,.9);border-radius:999px;padding:12px 28px;font-weight:800;font-size:1rem;font-family:inherit;cursor:pointer;min-height:52px;width:100%;max-width:420px}
+.start-card .copy-btn:active{transform:scale(.98)}
+.start-card .copy-done{margin:12px auto 0;max-width:420px;background:#ffffff;color:#14532d;border-radius:12px;padding:10px 14px;font-weight:800;font-size:.95rem;line-height:1.8}
+.start-card .copy-url{margin:10px auto 0;max-width:420px}
+.start-card .copy-url input{width:100%;border:none;border-radius:10px;padding:10px 12px;font-size:.8rem;direction:ltr;text-align:left;background:#ffffff;color:#15211c;min-height:44px}
+.copy-done-inline{display:inline-block;margin-inline-start:10px;font-weight:800;color:var(--ok);font-size:.92rem}
+.a11y-banner{background:var(--amber-bg);border:1px solid var(--amber);border-radius:12px;padding:14px 16px;margin-bottom:16px;text-align:right}
+.a11y-banner b{color:var(--amber)}
+:focus-visible{outline:4px solid var(--amber);outline-offset:3px}
+body.blind-mode .orb{width:168px;height:168px}
+body.blind-mode .btn{min-height:56px;font-size:1rem;padding:12px 22px}
+.voice-cmds{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:8px}
+@media(max-width:560px){.voice-cmds{grid-template-columns:1fr}}
+.voice-cmds div{background:var(--surface2);border-radius:10px;padding:9px 12px;font-size:.92rem}
+.voice-cmds b{color:var(--accent)}
+</style>
+</head>
+<body class="blind-mode">
+<!-- Live regions for screen readers (TalkBack / VoiceOver) -->
+<div class="sr-only" id="ariaStatus" role="status" aria-live="assertive"></div>
+<div class="sr-only" id="ariaAnswer" role="region" aria-label="جواب آخر" aria-live="polite"></div>
+
+<!-- Start card: an ordinary in-flow section with one big start button.
+     The previous build used a fixed full-screen overlay button plus a
+     document-level tap interceptor; inside in-app WebViews (no speech
+     recognition) that trapped every tap and the page's buttons felt dead.
+     Now nothing covers the page and no tap is hijacked: the play / test /
+     ask buttons work on the first tap, with or without starting the mic. -->
+<section class="start-card" id="startCard" aria-label="شروع دستیار صوتی">
+  <div class="big">🎧 دستیار صوتی سیستم‌عامل</div>
+  <p class="small">برای شروع مکالمه‌ی هندزفری، دکمه‌ی «شروع» را بزن و اجازه‌ی میکروفون را بده. از آن لحظه به بعد هیچ لمسی لازم نیست: فقط بگو «کژال» و سؤالت را بپرس؛ جواب در گوشت خوانده می‌شود.<br>دکمه‌های پخش جواب، تست صدا و سؤال‌های آماده در پایین صفحه، بدون زدن «شروع» هم کار می‌کنند.</p>
+  <button class="big-btn" id="bigStartBtn">▶ شروع</button>
+  <button class="copy-btn" id="copyLinkBtn" type="button">🔗 کپی لینک</button>
+  <div class="copy-done" id="copyDone" role="status" aria-live="assertive" hidden>✓ لینک کپی شد — حالا اپ کروم را باز کن و لینک را در نوار آدرس بالای کروم بچسبان و Enter بزن</div>
+  <div class="copy-url" id="copyUrlBox" hidden><input id="copyUrlInput" type="text" readonly aria-label="لینک این صفحه"></div>
+  <p class="small">اگه این صفحه رو توی اپ موز باز کردی: دکمه‌ی «کپی لینک» رو بزن، بعد اپ <b>Chrome</b> رو باز کن و لینک رو توی نوار آدرس بالای کروم بچسبون و Enter بزن. راهنمای قدم‌به‌قدم پایین صفحه هم هست.</p>
+</section>
+
+<div class="wrap">
+
+  <h1>دستیار صوتی سیستم‌عامل 🎧</h1>
+  <p class="sub">طراحی‌شده برای استفاده‌ی کاملاً بدون دست و بدون نگاه‌کردن به صفحه — از جمله برای فرد نابینا: بعد از یک شروعِ یک‌باره، همه‌چیز فقط با صداست. بگو <b>«کژال»</b> و سؤالت را بپرس؛ جواب از جزوه‌های فصل‌های ۱ تا ۳ و نمونه‌سؤال‌های میانترم پارسال در هندزفری خوانده می‌شود. برای قطع صدا بگو «کژال، ساکت»، برای تکرار بگو «کژال، تکرار کن»، برای شنیدن همه‌ی فرمان‌ها بگو «کژال، راهنما».</p>
+
+  <div class="a11y-banner" role="note" aria-label="نکته دسترسی">
+    <b>♿ حالت نابینایان فعال است:</b> شروع با دکمه‌ی بزرگ «شروع» در بالای صفحه یا دکمه‌ی هندزفری، اعلام صوتی و لرزشیِ هر وضعیت، گفت‌وگوی پیوسته بدون تکرار «کژال» برای هر سؤال، و فرمان صوتی برای همه‌ی کارها. تنها محدودیتِ خودِ مرورگر: اجازه‌ی میکروفون و بازماندن صفحه به یک لمسِ اول نیاز دارد — مرورگر موبایل اجازه‌ی شروعِ خودکارِ میکروفون بدون هیچ لمسی را به هیچ سایتی نمی‌دهد. صفحه بعد از شروع، خودش روشن می‌ماند (Wake Lock) تا مجبور به لمس دوباره نشوی.
+  </div>
+
+  <!-- ===== Open in Chrome help ===== -->
+  <section class="card" aria-label="باز کردن صفحه در کروم">
+    <h3>اگه این صفحه رو توی اپ موز باز کردی و صدا یا دکمه‌ها کار نکرد</h3>
+    <ol class="steps">
+      <li>دکمه‌ی <b>«کپی لینک»</b> را در بالای همین صفحه، کنار دکمه‌ی «شروع» بزن — یا همین دکمه‌ی زیر را بزن. وقتی پیام <b>«لینک کپی شد»</b> آمد، لینک این صفحه در حافظه‌ی گوشی کپی شده است.</li>
+      <li>اپ <b>Chrome</b> را باز کن (آیکون دایره‌ی رنگی).</li>
+      <li>نوار آدرس بالای کروم را بزن، لینک را بچسبان (Paste) و Enter بزن. چون لینک را خودت در نوار آدرس می‌چسبانی، صفحه داخل خود کروم می‌ماند.</li>
+      <li>هندزفری را وصل کن، دکمه‌ی «شروع» بالای صفحه را بزن و اجازه‌ی میکروفون را تأیید کن.</li>
+    </ol>
+    <p><button class="btn primary" id="copyLinkBtn2" type="button">🔗 کپی لینک</button><span class="copy-done-inline" id="copyDone2" role="status" aria-live="assertive" hidden>✓ لینک کپی شد</span></p>
+    <div class="copy-url" id="copyUrlBox2" hidden><input id="copyUrlInput2" type="text" readonly aria-label="لینک این صفحه" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.8rem;direction:ltr;text-align:left;background:var(--surface);color:var(--ink);min-height:44px"></div>
+    <p class="note">تشخیص گفتار و صدای فارسی فقط در کروم اندروید درست کار می‌کنند؛ مرورگر داخلی اپ‌ها از آن‌ها پشتیبانی نمی‌کند. دکمه‌های «پخش جواب» و «تست صدا» همین‌جا هم باید کار کنند و جواب را روی صفحه نشان می‌دهند.</p>
+  </section>
+
+  <!-- ===== Voice console ===== -->
+  <section class="card console" aria-label="کنسول صوتی">
+    <div class="orb-wrap">
+      <button class="orb" id="orbBtn" aria-label="شروع یا توقف مکالمه صوتی">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        <span class="orb-label" id="orbLabel">شروع</span>
+      </button>
+    </div>
+    <div class="status" id="statusText" role="status" aria-live="assertive">خاموش است<small>دکمه‌ی «شروع» بالای صفحه را بزن و اجازه‌ی میکروفون را بده؛ دکمه‌های پخش جواب بدون شروع هم کار می‌کنند</small></div>
+    <div class="wake-hint">کلمه‌ی بیدارباش: «کژال»</div>
+
+    <div class="live-box" aria-live="polite">
+      <div class="lbl">چیزی که می‌شنوم:</div>
+      <div class="live-text" id="liveText">—</div>
+    </div>
+
+    <div class="answer-box" id="answerBox">
+      <div class="q" id="answerQ"></div>
+      <div class="a" id="answerA"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="startBtn">▶ شروع مکالمه‌ی هندزفری</button>
+      <button class="btn danger" id="stopBtn">■ توقف</button>
+      <button class="btn" id="testVoiceBtn">🔊 تست صدا</button>
+      <button class="btn" id="repeatBtn">↻ تکرار جواب آخر</button>
+    </div>
+
+    <div class="settings">
+      <label><input type="checkbox" id="blindToggle" checked> حالت نابینایان (اعلام صوتی و لرزشی وضعیت‌ها + شروع با هر لمس)</label>
+      <label><input type="checkbox" id="continuousToggle" checked> گفت‌وگوی پیوسته (بعد از اولین «کژال»، برای سؤال بعدی لازم نیست دوباره «کژال» بگی)</label>
+      <label><input type="checkbox" id="wakeToggle" checked> بیدارباش با «کژال» (تا صدایم نکنی، سؤال حساب نمی‌کنم)</label>
+      <label><input type="checkbox" id="speakToggle" checked> خواندن جواب با صدا</label>
+      <label>سرعت صدا <input type="range" id="rateRange" min="0.7" max="1.3" step="0.05" value="0.95" aria-label="سرعت صدا"></label>
+    </div>
+    <p class="note" style="text-align:right;margin-top:10px">همه‌ی این تنظیم‌ها با صدا هم عوض می‌شوند: بگو «کژال، آهسته‌تر بخوان»، «کژال، سریع‌تر بخوان» یا «کژال، راهنما».</p>
+
+    <div class="unsupported" id="unsupportedBox">
+      ⚠️ مرورگر این گوشی تشخیص گفتار فارسی را پشتیبانی نمی‌کند. روی اندروید، این صفحه را با <b>Chrome</b> باز کن؛ روی آیفون تشخیص گفتار داخل صفحه محدود است، ولی می‌توانی سؤالت را پایین تایپ کنی یا روی سؤال‌های آماده بزنی تا جواب با صدا پخش شود.
+    </div>
+  </section>
+
+  <!-- ===== Manual ask ===== -->
+  <section class="card">
+    <h3>سؤال را تایپ کن یا از سؤال‌های آماده بزن</h3>
+    <div class="ask-row">
+      <input id="textInput" type="text" placeholder="مثلاً: حالت‌های مختلف یک پروسس را توضیح بده" aria-label="متن سؤال">
+      <button class="btn primary" id="askBtn">بپرس و جواب را بشنو</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <!-- ===== Conversation log ===== -->
+  <h2>گفت‌وگو</h2>
+  <div class="log" id="log">
+    <div class="log-item"><span class="who">کژال</span><p>سلام ریحان! من جزوه‌های فصل ۱ (مقدمه)، فصل ۲ (زمان‌بندی پروسس) و فصل ۳ (بن‌بست) و سؤال‌های میانترم‌های ۴۰۳۱، ۴۰۳۲ و ۴۰۴۱ را بلدم. بگو «کژال» و سؤالت را بپرس.</p></div>
+  </div>
+
+  <!-- ===== Process states ===== -->
+  <h2>درس‌نامه‌ی سریع: حالت‌های پروسس</h2>
+  <section class="card">
+    <div class="diagram" aria-label="نمودار حالت‌های پروسس">
+      <div class="state"><b>New</b><span>جدید</span></div>
+      <div class="arrow">→<small>admit</small></div>
+      <div class="state"><b>Ready</b><span>آماده</span></div>
+      <div class="arrow">→<small>dispatch</small></div>
+      <div class="state"><b>Running</b><span>در حال اجرا</span></div>
+      <div class="arrow">→<small>exit</small></div>
+      <div class="state"><b>Terminated</b><span>پایان‌یافته</span></div>
+    </div>
+    <div class="diagram">
+      <div class="state"><b>Running</b><span>درخواست I/O</span></div>
+      <div class="arrow">→<small>I/O request</small></div>
+      <div class="state"><b>Waiting</b><span>منتظر / مسدود</span></div>
+      <div class="arrow">→<small>I/O complete</small></div>
+      <div class="state"><b>Ready</b><span>دوباره در صف آماده</span></div>
+    </div>
+    <p class="legend">از Running با تمام‌شدن کوانتوم یا وقفه (Interrupt) هم پروسس به Ready برمی‌گردد. اگر حافظه کم بیاید، دو حالت Suspended Ready و Suspended Blocked هم اضافه می‌شود و مدل هفت‌حالته می‌شود. برای شنیدن توضیح کامل، روی دکمه‌ی زیر بزن یا صوتی بپرس: «کژال، حالت‌های پروسس را توضیح بده».</p>
+    <button class="btn" data-ask="حالت‌های مختلف یک پروسس را با رسم شکل توضیح دهید">🔊 پخش توضیح حالت‌های پروسس</button>
+  </section>
+
+  <!-- ===== Scheduling ===== -->
+  <h2>درس‌نامه‌ی سریع: الگوریتم‌های زمان‌بندی</h2>
+  <section class="card">
+    <div class="formula">زمان چرخش: <span class="ltr">Tt = Completion − Arrival</span> &nbsp;|&nbsp; زمان انتظار: <span class="ltr">Tw = Tt − Burst</span> &nbsp;|&nbsp; نسبت پاسخ در HRRN: <span class="ltr">R = (Tw + Burst) / Burst</span></div>
+    <div class="tbl-wrap">
+    <table>
+      <tr><th>الگوریتم</th><th>قاعده‌ی انتخاب</th><th>انحصاری؟</th><th>نکته‌ی امتحانی</th></tr>
+      <tr><td><b>FCFS</b></td><td>هر که زودتر آمد، زودتر اجرا می‌شود</td><td>نه</td><td>اثر کاروانی: پروسس طولانی، بقیه را معطل می‌کند</td></tr>
+      <tr><td><b>SJF</b></td><td>کوتاه‌ترین Burst بعدی</td><td>نه</td><td>میانگین Tw بهینه است، ولی Burst از قبل معلوم نیست</td></tr>
+      <tr><td><b>SRTF</b></td><td>کوتاه‌ترین زمان باقی‌مانده</td><td>بله</td><td>نسخه‌ی انحصاری SJF؛ گرسنگی برای پروسس‌های طولانی</td></tr>
+      <tr><td><b>RR</b></td><td>نوبتی با کوانتوم زمانی ثابت</td><td>بله</td><td>کوانتوم خیلی بزرگ = FCFS، خیلی کوچک = سربار Context Switch</td></tr>
+      <tr><td><b>Priority</b></td><td>بالاترین اولویت</td><td>هر دو نوع دارد</td><td>خطر گرسنگی؛ راه‌حل: Aging (پیرشدن تدریجی اولویت)</td></tr>
+      <tr><td><b>HRRN</b></td><td>بیشترین نسبت پاسخ R</td><td>نه</td><td>هرچه انتظار بیشتر، شانس انتخاب بیشتر؛ گرسنگی ندارد</td></tr>
+      <tr><td><b>MLFQ</b></td><td>چند صف با کوانتوم‌های متفاوت؛ مصرف کامل کوانتوم = سقوط به صف پایین‌تر</td><td>بله</td><td>پروسس‌های تعاملی و کوتاه خودبه‌خود بالا می‌مانند</td></tr>
+    </table>
+    </div>
+    <p class="note">در همه‌ی سؤال‌های عددی نمونه‌سؤال‌ها، Context Switch هم داده شده؛ یعنی بین دو اجرا، به‌اندازه‌ی زمان Context Switch وقفه می‌افتد و باید به زمان‌بندی اضافه شود.</p>
+  </section>
+
+  <!-- ===== Sample questions ===== -->
+  <h2>نمونه‌سؤال‌های میانترم پارسال (از فایل حل میانترم)</h2>
+  <p class="note">این‌ها سؤال‌هایی هستند که از حل میانترم‌های ۴۰۳۱، ۴۰۳۲ و ۴۰۴۱ استخراج شده‌اند. روی هر کدام بزنی، جوابش با صدا خوانده می‌شود؛ دقیقاً همان تمرینی که برای خودآزمایی می‌خواستی.</p>
+  <div id="samples"></div>
+
+  <!-- ===== Voice commands (no touch needed) ===== -->
+  <h2>همه‌ی فرمان‌های صوتی — بدون هیچ لمسی</h2>
+  <section class="card" aria-label="فرمان‌های صوتی">
+    <p>هر فرمان را با «کژال» شروع کن (در حالت گفت‌وگوی پیوسته، بعد از سؤال اول حتی «کژال» هم لازم نیست). همین فهرست با گفتنِ «کژال، راهنما» با صدا هم خوانده می‌شود.</p>
+    <div class="voice-cmds">
+      <div><b>«کژال، ساکت»</b> — قطع فوری صدای در حال پخش</div>
+      <div><b>«کژال، تکرار کن»</b> — خواندن دوباره‌ی جواب آخر</div>
+      <div><b>«کژال، راهنما»</b> — شنیدن راهنمای کامل صوتی</div>
+      <div><b>«کژال، موضوع‌ها را بگو»</b> — شنیدن فهرست همه‌ی موضوع‌هایی که بلدم</div>
+      <div><b>«کژال، آهسته‌تر بخوان» / «سریع‌تر بخوان»</b> — تغییر سرعت صدا</div>
+      <div><b>«کژال، وضعیت چیه؟»</b> — می‌گویم دارم گوش می‌دهم یا نه</div>
+      <div><b>«کژال، خداحافظ»</b> — توقف کامل گوش‌دادن</div>
+      <div><b>دکمه‌ی پخش هندزفری</b> — شروع یا توقف، بدون لمس گوشی</div>
+    </div>
+    <p class="note" style="margin-top:10px">بازخورد بدون دیدن صفحه: یک لرزش کوتاه = دارم گوش می‌دهم؛ دو لرزش = «کژال» را شنیدم، سؤالت را بگو؛ یک لرزش بلند = صدا قطع شد یا خطایی پیش آمد. دو بوق متفاوت هم همین وضعیت‌ها را در هندزفری اعلام می‌کنند.</p>
+  </section>
+
+  <!-- ===== How to use ===== -->
+  <h2>راه‌اندازی با موبایل و هندزفری بلوتوثی — برای فرد بینا و نابینا</h2>
+  <section class="card">
+    <ol class="steps">
+      <li>هندزفری بلوتوثی را <b>قبل</b> از بازکردن صفحه وصل کن تا میکروفون و صدا هر دو از هندزفری بروند.</li>
+      <li>صفحه را در <b>Chrome اندروید</b> باز کن و دکمه‌ی بزرگ <b>«شروع»</b> در بالای صفحه را بزن — یا دکمه‌ی پخش هندزفری را — و وقتی مرورگر اجازه‌ی میکروفون خواست، آن را تأیید کن. این تنها لمسِ کل سیستم است و خودِ مرورگر آن را اجباری کرده؛ هیچ وب‌سایتی نمی‌تواند بدون آن میکروفون را روشن کند.</li>
+      <li>به محض شروع، خودم با صدا می‌گویم «شروع شد، بگو کژال و سؤالت را بپرس» و یک لرزش کوتاه هم می‌خورد. گوشی را کنار بگذار؛ صفحه با Wake Lock خودش روشن می‌ماند.</li>
+      <li>بگو <span class="kbd">کژال</span> و سؤالت را بپرس. دو لرزش یعنی صدایت را شنیدم. جواب خودکار در هندزفری خوانده می‌شود.</li>
+      <li>سؤال بعدی: در حالت پیوسته فقط سؤالت را بگو، «کژال» لازم نیست. وسط جواب هم هر وقت گفتی «کژال، ساکت»، صدا همان لحظه قطع می‌شود.</li>
+      <li>اگر صفحه‌خوان گوشی (TalkBack اندروید یا VoiceOver آیفون) روشن است، همه‌ی وضعیت‌ها و جواب‌ها در ناحیه‌ی زنده‌ی صفحه (aria-live) هم اعلام می‌شوند تا صفحه‌خوان آن‌ها را بخواند.</li>
+    </ol>
+    <p class="note">محدودیت واقعی مرورگر: صفحه باید باز بماند؛ اگر مرورگر را کامل ببندی یا گوشی را ری‌استارت کنی، باید همان یک لمسِ شروع تکرار شود. اگر گوشی قفل شود، Wake Lock تا وقتی صفحه باز است جلوی خاموش‌شدن صفحه را می‌گیرد. امتحان واقعی آخر ترم است و این سیستم فقط برای خودآزمایی و درس‌خواندن ساخته شده.</p>
+  </section>
+
+  <footer>دستیار صوتی درس سیستم‌عامل — فصل‌های ۱ تا ۳ و هر ۳۸ سؤال نمونه‌ی میانترم و پایان‌ترم ۴۰۳۱، ۴۰۳۲ و ۴۰۴۱</footer>
+</div>
+
+<script>
+/* ================= Knowledge base ================= */
+var KB = [
+{ id:"states", keys:["حالت های پروسس","حالت‌های پروسس","استیت","state","حالت مختلف","پروسس را به رسم شکل","رسم شکل"],
+  q:"حالت‌های مختلف یک پروسس را به رسم شکل توضیح دهید.",
+  a:"مدل پنج‌حالته‌ی پروسس این است: پروسس در حالت New ساخته می‌شود؛ سیستم‌عامل برایش PCB و منابع را آماده می‌کند. با گذار Admit وارد حالت Ready می‌شود؛ یعنی آماده‌ی اجراست و در صف آماده منتظر نوبت CPU است. وقتی زمان‌بند آن را انتخاب می‌کند، با گذار Dispatch به حالت Running می‌رود و روی CPU اجرا می‌شود؛ روی هر CPU در هر لحظه فقط یک پروسس می‌تواند Running باشد. از Running سه راه دارد: اگر اجرایش تمام شود با Exit به Terminated می‌رسد و منابعش آزاد می‌شود. اگر کوانتوم زمانی‌اش تمام شود یا وقفه‌ای رخ دهد، به Ready برمی‌گردد. و اگر درخواست ورودی‌خروجی بدهد، به حالت Waiting یا Blocked می‌رود و تا تمام‌شدن آن رویداد، حتی با CPU آزاد هم نمی‌تواند اجرا شود؛ بعد از کامل‌شدن ورودی‌خروجی دوباره به Ready برمی‌گردد. نکته‌ی تکمیلی: اگر حافظه کم بیاید، پروسس به دیسک منتقل می‌شود و دو حالت Suspended Ready و Suspended Blocked اضافه می‌شود که به آن مدل هفت‌حالته می‌گویند."},
+{ id:"process", keys:["پروسس چیست","فرق پروسس و برنامه","pcb","بلوک کنترل","تعریف پروسس"],
+  q:"پروسس چیست و چه فرقی با برنامه دارد؟ PCB چیست؟",
+  a:"برنامه یک موجودیت منفعل است؛ یعنی فایل اجرایی روی دیسک. پروسس یک موجودیت فعال است؛ یعنی برنامه‌ای که در حال اجراست، همراه با شمارنده‌ی برنامه، رجیسترها، پشته، بخش داده و منابعش. یک برنامه می‌تواند چند پروسس داشته باشد. PCB یا بلوک کنترل پروسس، ساختمانی داده‌ای است که سیستم‌عامل برای هر پروسس نگه می‌دارد و شامل شناسه‌ی پروسس، حالت پروسس، شمارنده‌ی برنامه، مقدار رجیسترهای CPU، اطلاعات زمان‌بندی، اطلاعات مدیریت حافظه و اطلاعات ورودی‌خروجی است. هنگام Context Switch، وضعیت پروسس فعلی داخل PCB آن ذخیره و PCB پروسس بعدی بارگذاری می‌شود."},
+{ id:"os", keys:["سیستم عامل چیست","وظایف سیستم عامل","تعریف سیستم عامل","سیستم‌عامل چیست"],
+  q:"سیستم‌عامل چیست و وظایف اصلی آن کدام است؟",
+  a:"سیستم‌عامل نرم‌افزاری واسط بین کاربر و سخت‌افزار است که منابع سیستم مثل CPU، حافظه و دستگاه‌های ورودی‌خروجی را مدیریت می‌کند و محیطی برای اجرای برنامه‌ها فراهم می‌کند. وظایف اصلی‌اش عبارت‌اند از: مدیریت پروسس و زمان‌بندی CPU، مدیریت حافظه، مدیریت فایل، مدیریت دستگاه‌های ورودی‌خروجی، و حفاظت و امنیت. دو هدف اصلی سیستم‌عامل، راحتی کاربر و استفاده‌ی کارآمد از سخت‌افزار است."},
+{ id:"sched-basic", keys:["زمان بندی","زمان‌بندی","معیار","زمان چرخش","زمان انتظار","turnaround","زمان پاسخ"],
+  q:"معیارهای زمان‌بندی CPU و فرمول زمان چرخش و زمان انتظار چیست؟",
+  a:"معیارهای زمان‌بندی این‌ها هستند: بهره‌وری CPU یعنی درصد زمانی که CPU مشغول است؛ توان عملیاتی یعنی تعداد پروسس‌های تمام‌شده در واحد زمان؛ زمان چرخش یا Turnaround یعنی از لحظه‌ی ورود پروسس تا لحظه‌ی تمام‌شدنش، و برابر است با زمان اتمام منهای زمان ورود. زمان انتظار یا Waiting یعنی مجموع زمانی که پروسس در صف آماده منتظر مانده و برابر است با زمان چرخش منهای زمان Burst. زمان پاسخ هم یعنی از لحظه‌ی ثبت درخواست تا تولید اولین پاسخ، که در سیستم‌های تعاملی مهم است. در سؤال‌های عددی معمولاً میانگین زمان چرخش و میانگین زمان انتظار خواسته می‌شود و اگر Context Switch داده شده باشد، زمان آن هم بین اجراها اضافه می‌شود."},
+{ id:"preemptive", keys:["انحصاری","غیر انحصاری","preemptive","قبضه","سوال مفهومی انحصاری"],
+  q:"زمان‌بندی انحصاری (Preemptive) و غیرانحصاری چه فرقی دارند؟",
+  a:"در زمان‌بندی غیرانحصاری، وقتی CPU به یک پروسس داده شد، تا پایان Burst یا تا وقتی خودش داوطلبانه منتظر ورودی‌خروجی شود، CPU از آن گرفته نمی‌شود؛ مثل FCFS و SJF. در زمان‌بندی انحصاری، سیستم‌عامل می‌تواند CPU را وسط اجرا از پروسس بگیرد؛ مثلاً وقتی پروسس با اولویت بالاتر می‌رسد، یا کوانتوم زمانی تمام می‌شود. SRT نسخه‌ی انحصاری SJF است و Round Robin هم ذاتاً انحصاری است چون بر پایه‌ی کوانتوم زمانی کار می‌کند. مزیت روش انحصاری، زمان پاسخ بهتر برای پروسس‌های مهم و کوتاه است و هزینه‌اش، Context Switch بیشتر است. این همان سؤال مفهومی میانترم ۴۰۳۲ است که به SRT و RR اشاره می‌کند."},
+{ id:"fcfs", keys:["fcfs","اولین وارد","اثر کاروانی"],
+  q:"الگوریتم FCFS را توضیح دهید.",
+  a:"در FCFS پروسس‌ها به ترتیب ورودشان به صف آماده اجرا می‌شوند؛ اولین وارد، اولین سرویس. پیاده‌سازی‌اش با یک صف FIFO است و غیرانحصاری است. مشکل اصلی‌اش اثر کاروانی است: اگر یک پروسس طولانی اول صف باشد، همه‌ی پروسس‌های کوتاه پشت سرش معطل می‌شوند و میانگین زمان انتظار بالا می‌رود."},
+{ id:"sjf", keys:["sjf","کوتاه ترین کار","کوتاه‌ترین","srt","srtf"],
+  q:"الگوریتم‌های SJF و SRTF را توضیح دهید.",
+  a:"در SJF پروسسی انتخاب می‌شود که Burst بعدی‌اش از همه کوتاه‌تر است. ثابت می‌شود که SJF میانگین زمان انتظار را کمینه می‌کند، ولی مشکلش این است که طول Burst بعدی از قبل معلوم نیست و فقط می‌شود تخمینش زد، و پروسس‌های طولانی ممکن است دچار گرسنگی شوند. نسخه‌ی انحصاری آن SRTF یا کوتاه‌ترین زمان باقی‌مانده است: اگر پروسس جدیدی برسد که Burst آن از زمان باقی‌مانده‌ی پروسس در حال اجرا کمتر باشد، CPU را از پروسس فعلی می‌گیرد و به تازه‌وارد می‌دهد."},
+{ id:"rr", keys:["round robin","راوند رابین","کوانتوم","نوبتی","time slice","تایم اسلایس"],
+  q:"الگوریتم Round Robin را توضیح دهید.",
+  a:"در Round Robin هر پروسس یک کوانتوم زمانی یا Time Slice ثابت می‌گیرد. اگر Burst پروسس در آن کوانتوم تمام نشود، پروسس متوقف و به انتهای صف آماده فرستاده می‌شود و CPU به پروسس بعدی می‌رسد. عملکرد RR کاملاً به اندازه‌ی کوانتوم بستگی دارد: اگر کوانتوم خیلی بزرگ باشد، عملاً به FCFS تبدیل می‌شود؛ اگر خیلی کوچک باشد، تعداد Context Switch و سربار آن زیاد می‌شود. قاعده‌ی تجربی این است که حدود هشتاد درصد Burstها باید از کوانتوم کوتاه‌تر باشند."},
+{ id:"priority", keys:["priority","اولویت","گرسنگی","aging","پیر شدن"],
+  q:"زمان‌بندی اولویتی (Priority) و مشکل گرسنگی را توضیح دهید.",
+  a:"در زمان‌بندی اولویتی، به هر پروسس یک عدد اولویت داده می‌شود و CPU به پروسسی می‌رسد که بالاترین اولویت را دارد؛ این الگوریتم هم انحصاری و هم غیرانحصاری ساخته می‌شود. مشکل اصلی‌اش گرسنگی یا Starvation است: پروسس‌های کم‌اولویت ممکن است هیچ‌وقت نوبتشان نشود. راه‌حلش Aging است؛ یعنی اولویت پروسسی که مدت زیادی در صف آماده منتظر مانده، به‌تدریج بالا برود تا بالاخره اجرا شود. در سؤال میانترم ۴۰۴۱، عدد بالاتر یعنی اولویت بالاتر."},
+{ id:"hrrn", keys:["hrrn","نسبت پاسخ","بالاترین نسبت"],
+  q:"الگوریتم HRRN را توضیح دهید.",
+  a:"در HRRN یا بالاترین نسبت پاسخ، برای هر پروسسِ آماده، نسبت پاسخ حساب می‌شود: R مساوی است با زمان انتظار به‌علاوه‌ی زمان Burst، تقسیم بر زمان Burst. پروسسی انتخاب می‌شود که R بزرگ‌تری دارد. چون هرچه پروسس بیشتر منتظر بماند صورت کسر بزرگ‌تر می‌شود، پروسس‌های طولانی هم بالاخره نوبتشان می‌شود و گرسنگی پیش نمی‌آید؛ در عین حال پروسس‌های کوتاه هم چون مخرج کسرشان کوچک است، نسبت بالایی می‌گیرند. HRRN غیرانحصاری است."},
+{ id:"mlfq", keys:["mlfq","چند سطحی","صف بازخورد","چند صف"],
+  q:"الگوریتم MLFQ (صف چندسطحی با بازخورد) را توضیح دهید.",
+  a:"در MLFQ چند صف آماده با اولویت‌های مختلف داریم. پروسس جدید وارد صف بالاترین اولویت می‌شود. اگر کل کوانتوم صفش را مصرف کند و تمام نشود، یک سطح سقوط می‌کند و به صف پایین‌تر می‌رود؛ ولی اگر قبل از پایان کوانتوم، خودش برای ورودی‌خروجی متوقف شود، در همان سطح می‌ماند. صف‌های بالاتر معمولاً Round Robin با کوانتوم کوچک و صف آخر معمولاً FCFS است. نتیجه این است که پروسس‌های کوتاه و تعاملی خودبه‌خود در صف‌های بالا می‌مانند و زمان پاسخ خوبی می‌گیرند، بدون اینکه از قبل طول Burst را بدانیم."},
+{ id:"deadlock", keys:["بن بست","بن‌بست","deadlock","چهار شرط","شرایط لازم"],
+  q:"بن‌بست (Deadlock) چیست و چهار شرط لازم آن کدام است؟",
+  a:"بن‌بست وضعیتی است که در آن مجموعه‌ای از پروسس‌ها هر کدام منبعی را نگه داشته‌اند و منتظر منبعی هستند که دست پروسس دیگری از همان مجموعه است؛ در نتیجه هیچ‌کدام نمی‌توانند پیش بروند و برای همیشه منتظر می‌مانند. برای وقوع بن‌بست، چهار شرط باید هم‌زمان برقرار باشد: یک، انحصار متقابل؛ یعنی هر منبع در هر لحظه فقط دست یک پروسس باشد. دو، نگه‌داشتن و انتظار؛ یعنی پروسس حداقل یک منبع را نگه دارد و برای منبع بعدی منتظر بماند. سه، عدم قبضه؛ یعنی منبع را نمی‌شود به زور از پروسس گرفت و خودش باید آزادش کند. چهار، انتظار چرخه‌ای؛ یعنی یک زنجیره‌ی حلقوی از پروسس‌ها وجود داشته باشد که هر کدام منتظر منبعِ پروسس بعدی باشند. اگر یکی از این چهار شرط را از بین ببریم، بن‌بست پیشگیری می‌شود."},
+{ id:"rag", keys:["گراف تخصیص","resource allocation","ترتیب امن گراف","گراف منابع"],
+  q:"گراف تخصیص منابع و تشخیص بن‌بست با آن را توضیح دهید.",
+  a:"در گراف تخصیص منابع، دایره‌ها پروسس‌ها و مربع‌ها منابع هستند. یال از منبع به پروسس یعنی آن نمونه از منبع به پروسس تخصیص داده شده، و یال از پروسس به منبع یعنی پروسس منتظر آن منبع است. اگر گراف چرخه نداشته باشد، قطعاً بن‌بست نداریم. اگر چرخه داشته باشد و همه‌ی منابع تک‌نمونه‌ای باشند، حتماً بن‌بست داریم؛ ولی اگر بعضی منابع چندنمونه‌ای باشند، چرخه فقط احتمال بن‌بست است و باید ترتیب اجرا را بررسی کرد. در سؤال میانترم ۴۰۳۲ با منابع R1 و R2 تک‌نمونه‌ای و R3 دونمونه‌ای و پروسس‌های P1 و P2 و P3، ترتیب امن اجرا P1 بعد P3 بعد P2 است؛ یعنی اول P1 تمام می‌شود و منابعش را آزاد می‌کند، بعد P3 و در آخر P2."},
+{ id:"banker", keys:["بانکدار","banker","حالت امن","ترتیب امن","safe state","need"],
+  q:"الگوریتم بانکدار (Banker's Algorithm) را توضیح دهید.",
+  a:"الگوریتم بانکدار روش اجتناب از بن‌بست است. هر پروسس از قبل حداکثر نیازش یا Max را اعلام می‌کند. ماتریس Need برابر است با Max منهای Allocation. سیستم در حالت امن است اگر ترتیبی از همه‌ی پروسس‌ها وجود داشته باشد که هر پروسس بتواند با منابع Available به‌علاوه‌ی منابعی که پروسس‌های قبلی آزاد کرده‌اند، نیازش را کامل بگیرد، تمام شود و منابعش را آزاد کند. برای بررسی: پروسسی را پیدا کن که Need آن از Available کوچک‌تر یا مساوی باشد؛ فرض کن اجرا و تمام می‌شود، Allocation آن به Available اضافه می‌شود و همین کار تکرار می‌شود. اگر همه‌ی پروسس‌ها در این ترتیب جا شدند، سیستم امن است؛ وگرنه ناامن است و ممکن است به بن‌بست برسد. در سؤال میانترم ۴۰۴۱ برای پروسس‌های T0 تا T4 با منابع A و B و C و D: حالت الف با Available برابر ۲ و ۲ و ۲ و ۳ امن است؛ حالت ب با ۴ و ۴ و ۱ و ۱ امن است؛ و حالت ج با ۳ و صفر و ۱ و ۴ ناامن و بن‌بست است."},
+{ id:"context", keys:["context switch","جابه جایی","تعویض متن","سوییچ"],
+  q:"Context Switch چیست؟",
+  a:"Context Switch یعنی ذخیره‌کردن وضعیت پروسس در حال اجرا داخل PCB آن و بارگذاری وضعیت پروسس بعدی برای اجرا. این کار زمان‌بر است و سربار خالص محسوب می‌شود، چون هنگام آن هیچ کار مفیدی انجام نمی‌شود. در سؤال‌های نمونه‌ی میانترم، زمان Context Switch داده می‌شود، مثلاً یک یا دو میلی‌ثانیه، و باید بین هر دو اجرای متوالی، این زمان به خط زمان اضافه شود؛ برای همین تعداد جابه‌جایی‌ها روی زمان چرخش اثر مستقیم دارد."},
+{ id:"sample-hrrn", keys:["سوال سه ۴۰۳۱","۴۰۳۱ سوال ۳","تمرین hrrn","مثال hrrn","حل hrrn"],
+  q:"حل سؤال ۳ میانترم ۴۰۳۱: HRRN با Context Switch برابر ۲ میلی‌ثانیه",
+  a:"با Context Switch دو میلی‌ثانیه‌ای بین هر دو اجرا، ترتیب اجرا در HRRN این است: P0 از صفر تا سه، بعد P1 از پنج تا یازده، بعد P3 از سیزده تا هجده، بعد P2 از بیست تا سی‌وچهار و در آخر P4 از سی‌وشش تا چهل‌وهفت. میانگین زمان چرخش هجده و شش دهم میلی‌ثانیه و میانگین زمان انتظار ده و هشت دهم میلی‌ثانیه است."},
+{ id:"sample-mlfq30", keys:["برست ۳۰","burst ۳۰","سی در کدام صف","کدام صف تمام"],
+  q:"حل سؤال ۵ میانترم ۴۰۳۲: پروسس با Burst ۳۰ در MLFQ با کوانتوم‌های دوبرابرشونده در کدام صف تمام می‌شود؟",
+  a:"کوانتوم صف‌ها یک، دو، چهار، هشت و شانزده است و هر بار دو برابر می‌شود. پروسس در صف اول یک میلی‌ثانیه می‌گیرد و بیست‌ونه میلی‌ثانیه باقی می‌ماند و سقوط می‌کند. در صف دوم دو میلی‌ثانیه، جمعاً سه، و بیست‌وهفت باقی می‌ماند. در صف سوم چهار میلی‌ثانیه، جمعاً هفت، و بیست‌وسه باقی می‌ماند. در صف چهارم هشت میلی‌ثانیه، جمعاً پانزده، و پانزده میلی‌ثانیه باقی می‌ماند. در صف پنجم کوانتوم شانزده است و پانزده‌ی باقی‌مانده کمتر از شانزده است، پس پروسس در صف پنجم تمام می‌شود."},
+{ id:"sample-rr4032", keys:["۴۰۳۲ سوال ۴","سوال چهار ۴۰۳۲","حل rr","مثال round robin عددی"],
+  q:"حل سؤال ۴ میانترم ۴۰۳۲: RR و HRRN با کوانتوم ۳ و Context Switch برابر ۱ میلی‌ثانیه",
+  a:"توجه: Burst پروسس P0 در این سؤال سیزده است، نه ده. جدول: P0 ورود صفر و Burst سیزده، P1 ورود سه و Burst هشت، P2 ورود چهار و Burst پنج و P3 ورود شانزده و Burst چهار. در Round Robin با کوانتوم سه و Context Switch یک میلی‌ثانیه‌ای، میانگین زمان چرخش بیست‌ونه و میانگین زمان انتظار بیست‌ویک و نیم میلی‌ثانیه است. در HRRN ترتیب اجرا P0، بعد P2، بعد P1 و بعد P3 است و میانگین زمان چرخش هفده و نیم و میانگین زمان انتظار ده میلی‌ثانیه است."},
+{ id:"sample-priority4041", keys:["۴۰۴۱ سوال ۲","سوال دو ۴۰۴۱","حل priority","مثال اولویت عددی"],
+  q:"حل سؤال ۲ میانترم ۴۰۴۱: RR و HRRN و اولویتی غیرانحصاری",
+  a:"توجه: Burst پروسس P2 در این سؤال یک است، نه چهار. جدول: P1 با Burst دو و اولویت دو، P2 با Burst یک و اولویت یک، P3 با Burst هشت و اولویت چهار، P4 با Burst چهار و اولویت دو و P5 با Burst پنج و اولویت سه؛ همه ورودشان صفر است و عدد بالاتر یعنی اولویت بالاتر. در اولویتی غیرانحصاری میانگین زمان چرخش هفده و میانگین زمان انتظار سیزده است؛ در Round Robin با کوانتوم دو، میانگین‌ها شانزده و چهار دهم و دوازده و چهار دهم است؛ و در HRRN میانگین زمان چرخش ده و هشت دهم و میانگین زمان انتظار شش و هشت دهم است، پس HRRN در این سؤال بهترین است."},
+
+/* ===== 38 solved sample-exam questions (midterm + final 4031/4032/4041) — short, speakable answers ===== */
+{ id:"ex4031m1", keys:["۴۰۳۱ سوال ۱","4031 سوال 1","میانترم ۴۰۳۱ سوال یک","شرح موارد ۴۰۳۱","micro kernel","مایکرو کرنل","ریزهسته","hardware multithreading"],
+  q:"میانترم ۴۰۳۱ سؤال ۱: شرح Interrupt و System Call و Microkernel و Hardware Multithreading",
+  a:"وقفه سیگنالی است که اجرای فعلی را متوقف می‌کند تا پردازنده به کار فوری برسد و Interrupt Handler همان روتین سیستم‌عامل است که آن کار را انجام می‌دهد و برمی‌گردد. فراخوانی سیستمی تنها راه قانونی رفتن برنامه از حالت کاربر به حالت کرنل برای گرفتن خدماتی مثل خواندن فایل است. در ریزهسته فقط اجزای ضروری داخل کرنل می‌مانند و بقیه‌ی خدمات در فضای کاربر با ارسال پیام کار می‌کنند؛ مطمئن‌تر است ولی سربار پیام دارد. چندنخی سخت‌افزاری یعنی یک هسته چند نخ با ثبات‌های جدا نگه می‌دارد تا وقتی نخی منتظر ماند، نخ دیگر اجرا شود."},
+{ id:"ex4031m2", keys:["۴۰۳۱ سوال ۲","4031 سوال 2","میانترم ۴۰۳۱ سوال دو"],
+  q:"میانترم ۴۰۳۱ سؤال ۲: حالت‌های یک Process",
+  a:"پروسس پنج حالت دارد: New یعنی در حال ساخته‌شدن، Ready یعنی آماده و منتظر پردازنده، Running یعنی در حال اجرا، Waiting یعنی منتظر رویدادی مثل ورودی‌خروجی، و Terminated یعنی پایان‌یافته. از Running با تمام‌شدن کوانتوم به Ready برمی‌گردد و با درخواست ورودی‌خروجی به Waiting می‌رود."},
+{ id:"ex4031m4", keys:["۴۰۳۱ سوال ۴","4031 سوال 4","میانترم ۴۰۳۱ سوال چهار","حل mlfq ۴۰۳۱"],
+  q:"میانترم ۴۰۳۱ سؤال ۴: MLFQ سه صف با کوانتوم‌های ۴ و ۸ و FCFS",
+  a:"در این MLFQ با Context Switch دو میلی‌ثانیه‌ای، میانگین زمان چرخش سی‌وسه و شش دهم و میانگین زمان انتظار بیست‌وپنج و هشت دهم میلی‌ثانیه است. میانگین‌ها از HRRN بیشتر شده‌اند، چون جابه‌جایی بین صف‌ها Context Switchهای زیادی اضافه می‌کند."},
+{ id:"ex4031f1", keys:["پایان ترم ۴۰۳۱ سوال ۱","پایان‌ترم ۴۰۳۱ سوال یک","interrupt vector","بردار وقفه","dispatcher","دیسپچر","dma چیست"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۱: Interrupt Vector و Dispatcher و Monolithic و DMA",
+  a:"بردار وقفه جدولی در حافظه‌ی پایین است که آدرس روتین سرویس هر وقفه را نگه می‌دارد و وقفه‌ی غیرقابل‌چشم‌پوشی حتی با غیرفعال‌بودن وقفه‌ها هم رسیدگی می‌شود. Dispatcher جزء کوچکی است که پردازنده را واقعاً به پروسسی می‌دهد که زمان‌بند انتخاب کرده و مدت این تحویل Dispatch Latency نام دارد. ساختار یکپارچه یعنی همه‌ی خدمات داخل یک کرنل بزرگ و یک فضای آدرس‌اند؛ سریع است ولی خطای یک بخش می‌تواند کل سیستم را بیندازد. در DMA کنترل‌کننده‌ی دستگاه داده را مستقیم با حافظه جابه‌جا می‌کند و پردازنده فقط اول و آخر کار درگیر می‌شود."},
+{ id:"ex4031f2", keys:["پایان ترم ۴۰۳۱ سوال ۲","ذخیره سازی پروسس در حافظه","ذخیره‌سازی پروسس در ram","حافظه ram پروسس","هیپ و پشته"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۲: ذخیره‌سازی Process در RAM",
+  a:"حافظه‌ی هر پروسس چهار بخش دارد: Text کد اجرایی، Data متغیرهای سراسری، Heap حافظه‌ی تخصیص‌یافته در زمان اجرا که رو به بالا رشد می‌کند، و Stack داده‌های موقت توابع که رو به پایین رشد می‌کند. هیپ و پشته از دو طرف به سمت فضای خالی وسط رشد می‌کنند و PCB هم همه‌ی اطلاعات مدیریتی پروسس را نگه می‌دارد."},
+{ id:"ex4031f3", keys:["پایان ترم ۴۰۳۱ سوال ۳","پایان‌ترم ۴۰۳۱ سوال سه","مقایسه rr و fifo و srt"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۳: مقایسه‌ی FIFO و RR و SRT",
+  a:"در FIFO میانگین زمان چرخش بیست‌ویک و دو دهم و میانگین انتظار دوازده است. در RR با کوانتوم دو، میانگین زمان چرخش چهل‌وسه و دو دهم و میانگین انتظار سی‌وچهار است و P3 در زمان شصت‌ونه تمام می‌شود؛ RR به‌خاطر سربار زیاد Context Switch بدترین است. در SRT میانگین زمان چرخش بیست و چهار دهم و میانگین انتظار یازده و دو دهم است، پس SRT بهترین نتیجه را می‌دهد."},
+{ id:"ex4031f4", keys:["پایان ترم ۴۰۳۱ سوال ۴","صفحه بندی ۵۱۲ عنصر","حافظه فیزیکی ۳۲ مگابایت"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۴: اندازه‌ی حافظه‌ی فیزیکی در صفحه‌بندی",
+  a:"جدول صفحه پانصد و دوازده عنصر دارد، پس شماره‌ی صفحه نه بیت است و صفحه‌ی یک کیلوبایتی آفست ده‌بیتی می‌دهد. از عنصر شانزده‌بیتی، یک بیت برای valid می‌رود و پانزده بیت شماره‌ی قاب می‌ماند، پس دو به توان پانزده قاب داریم. حافظه‌ی فیزیکی می‌شود دو به توان بیست‌وپنج بایت، یعنی سی‌ودو مگابایت، و آدرس فیزیکی بیست‌وپنج بیت است."},
+{ id:"ex4031f5", keys:["پایان ترم ۴۰۳۱ سوال ۵","next fit","نکست فیت"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۵: Next Fit",
+  a:"قرارداد Next Fit این است که جستجو از بلوکی شروع می‌شود که آخرین تخصیص در آن انجام شده و باقی‌مانده‌ی همان بلوک اول بررسی می‌شود. با این قرارداد هر چهار درخواست بیست، سی، بیست و سی‌وپنج کیلوبایتی تخصیص داده می‌شوند. بلوک‌های خالی نهایی از چپ به راست: صفر، بیست‌وپنج، پانزده، پانزده، ده و پنج کیلوبایت."},
+{ id:"ex4031f6", keys:["پایان ترم ۴۰۳۱ سوال ۶","جایگزینی صفحه optimal و lru","تعداد page fault اپتیمال"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۶: جایگزینی صفحه با Optimal و LRU",
+  a:"با چهار قاب و رشته‌ی ارجاع بیست‌تایی سؤال، تعداد نقص صفحه در Optimal هشت تا و در LRU ده تا است. پس Optimal بهتر است، چون از آینده خبر دارد و صفحه‌ای را بیرون می‌کند که دیرتر از همه لازم می‌شود."},
+{ id:"ex4031f7", keys:["پایان ترم ۴۰۳۱ سوال ۷","بانکدار پایان ترم ۴۰۳۱","بانکداران p0 تا p4"],
+  q:"پایان‌ترم ۴۰۳۱ سؤال ۷: الگوریتم بانکداران کلاسیک",
+  a:"سیستم امن است و یک ترتیب امن آن P1، بعد P3، بعد P4، بعد P0 و بعد P2 است. اما درخواست P4 برای چهار نمونه‌ی دیگر از A پذیرفته نمی‌شود، چون Available منبع A فقط سه نمونه است و درخواست از موجودی بیشتر است؛ P4 باید منتظر بماند."},
+{ id:"ex4032m1", keys:["۴۰۳۲ سوال ۱","4032 سوال 1","میانترم ۴۰۳۲ سوال یک"],
+  q:"میانترم ۴۰۳۲ سؤال ۱: PCB چیست؟",
+  a:"PCB یا بلوک کنترل پروسس شناسنامه‌ی هر پروسس نزد سیستم‌عامل است و شامل شناسه، حالت، شمارنده‌ی برنامه، ثبات‌ها، اطلاعات زمان‌بندی، اطلاعات حافظه و وضعیت ورودی‌خروجی است. کارکرد اصلی‌اش ممکن‌کردن Context Switch است: وضعیت پروسس در PCB ذخیره و از PCB پروسس بعدی بارگذاری می‌شود."},
+{ id:"ex4032m2", keys:["۴۰۳۲ سوال ۲","4032 سوال 2","میانترم ۴۰۳۲ سوال دو","monolithic system چیست"],
+  q:"میانترم ۴۰۳۲ سؤال ۲: Monolithic System چیست؟",
+  a:"سیستم یکپارچه یعنی همه‌ی خدمات سیستم‌عامل داخل یک کرنل بزرگ و در یک فضای آدرس مشترک اجرا می‌شوند و ارتباطشان فقط یک فراخوانی تابع است، پس سریع است. عیبش بزرگی کرنل و این است که خطای یک بخش می‌تواند کل سیستم را از کار بیندازد؛ لینوکس و یونیکس سنتی مثال‌های معروف آن‌اند."},
+{ id:"ex4032m3", keys:["۴۰۳۲ سوال ۳","4032 سوال 3","میانترم ۴۰۳۲ سوال سه"],
+  q:"میانترم ۴۰۳۲ سؤال ۳: الگوریتم Preemptive چیست؟",
+  a:"الگوریتم انحصاری الگوریتمی است که سیستم‌عامل می‌تواند پردازنده را وسط اجرا پس بگیرد؛ یا چون کوانتوم تمام شده یا چون پروسس مهم‌تری رسیده است. مثال‌ها: Round Robin با کوانتوم زمانی، SRT که نسخه‌ی انحصاری SJF است، اولویتی انحصاری، و MLFQ. در مقابل، FCFS و SJF و HRRN غیرانحصاری‌اند."},
+{ id:"ex4032m5", keys:["۴۰۳۲ سوال ۵","4032 سوال 5","میانترم ۴۰۳۲ سوال پنج"],
+  q:"میانترم ۴۰۳۲ سؤال ۵: پروسس ۳۰ میلی‌ثانیه‌ای در MLFQ",
+  a:"کوانتوم صف‌ها یک، دو، چهار، هشت و شانزده است؛ پروسس در چهار صف اول جمعاً پانزده میلی‌ثانیه می‌گیرد و پانزده میلی‌ثانیه باقی می‌ماند. پس باید وارد پنج صف شود و در صف پنجم تمام می‌شود."},
+{ id:"ex4032m6", keys:["۴۰۳۲ سوال ۶","4032 سوال 6","میانترم ۴۰۳۲ سوال شش"],
+  q:"میانترم ۴۰۳۲ سؤال ۶: گراف تخصیص منابع",
+  a:"سیستم در وضعیت امن است و ترتیب امن اجرا P1، بعد P3 و بعد P2 است؛ یعنی اول P1 تمام می‌شود و منابعش را آزاد می‌کند، بعد P3 و در آخر P2."},
+{ id:"ex4032f1", keys:["پایان ترم ۴۰۳۲ سوال ۱","bootstrap","بوت استرپ","برنامه بوت"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۱: برنامه‌ی Bootstrap",
+  a:"هنگام روشن‌شدن، حافظه‌ی اصلی خالی است و سیستم‌عامل هنوز بارگذاری نشده؛ برنامه‌ی کوچک Bootstrap که در ROM ذخیره شده اول اجرا می‌شود، سخت‌افزار را بررسی و آماده می‌کند و کرنل سیستم‌عامل را از دیسک به حافظه می‌آورد و اجرا می‌کند. بدون آن دستگاه اصلاً بالا نمی‌آید."},
+{ id:"ex4032f2", keys:["پایان ترم ۴۰۳۲ سوال ۲","linker و loader","لینکر و لودر","پیونددهنده و بارگذار"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۲: تفاوت Linker و Loader",
+  a:"لینکر قبل از اجرا، فایل‌های آبجکت و کتابخانه‌ها را به هم می‌چسباند، ارجاع‌های نمادین را حل می‌کند و یک فایل اجرایی می‌سازد. لودر هنگام اجرا، آن فایل اجرایی را از دیسک به حافظه‌ی اصلی می‌آورد و پروسس را آماده‌ی اجرا می‌کند. پس لینکر فایل اجرایی را می‌سازد و لودر آن را به حافظه می‌آورد."},
+{ id:"ex4032f3", keys:["پایان ترم ۴۰۳۲ سوال ۳","کمینه کردن متوسط زمان پاسخ","زمان پاسخ ۶ میلی"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۳: کمینه‌کردن متوسط زمان پاسخ",
+  a:"برای کمینه‌کردن متوسط زمان پاسخ بین SJF و HRRN و RR، روش Round Robin برنده است و متوسط زمان پاسخ آن شش میلی‌ثانیه می‌شود. چون در RR هر پنج پروسس در همان دور اول خیلی زود اولین اجرایشان را می‌گیرند، در حالی که در روش‌های غیرانحصاری پروسس‌های آخر باید تمام‌شدن پروسس‌های قبلی را صبر کنند."},
+{ id:"ex4032f4", keys:["پایان ترم ۴۰۳۲ سوال ۴","بانکدار پایان ترم ۴۰۳۲"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۴: الگوریتم بانکداران",
+  a:"با Available برابر چهار، چهار، یک و یک، سیستم امن است و یک ترتیب امن آن T4، بعد T1، بعد T0، بعد T2 و بعد T3 است. هر نخ می‌تواند نیازش را با منابع موجود و منابع آزادشده‌ی نخ‌های قبلی کامل بگیرد و تمام شود."},
+{ id:"ex4032f5", keys:["پایان ترم ۴۰۳۲ سوال ۵","نرخ برخورد tlb","tlb hit","تی ال بی"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۵: نرخ برخورد TLB",
+  a:"بدون TLB هر دسترسی صد نانوثانیه طول می‌کشد و با نسبت کارایی داده‌شده، زمان مؤثر با TLB هشتاد نانوثانیه به دست می‌آید. از معادله‌ی زمان مؤثر، نرخ برخورد TLB برابر هشتاد درصد است."},
+{ id:"ex4032f6", keys:["پایان ترم ۴۰۳۲ سوال ۶","بیت های شماره قاب","شماره قاب چند بیتی"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۶: تعداد بیت‌های شماره‌ی قاب",
+  a:"جدول صفحه‌ی پانصد و دوازده سطری یعنی شماره‌ی صفحه نه بیت؛ برنامه‌ی دو گیگابایتی آدرس مجازی سی‌ویک‌بیتی دارد، پس آفست بیست‌ودو بیت می‌شود. حافظه‌ی فیزیکی شصت‌وچهار مگابایتی آدرس بیست‌وشش‌بیتی دارد و شماره‌ی قاب می‌شود بیست‌وشش منهای بیست‌ودو، یعنی چهار بیت."},
+{ id:"ex4032f7", keys:["پایان ترم ۴۰۳۲ سوال ۷","ماتریس lru","حافظه لازم برای lru"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۷: حافظه‌ی ماتریس LRU",
+  a:"حافظه‌ی صد و بیست‌وهشت مگابایتی با قاب چهار کیلوبایتی یعنی دو به توان پانزده قاب. ماتریس LRU دوبعدی n در n بیتی است، پس دو به توان سی بیت، یعنی صد و بیست‌وهشت مگابایت حافظه می‌خواهد؛ همین نشان می‌دهد این روش برای حافظه‌های بزرگ عملی نیست."},
+{ id:"ex4032f8", keys:["پایان ترم ۴۰۳۲ سوال ۸","آدرس فیزیکی قطعات صفحه بندی","11437","2cad"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۸: آدرس فیزیکی در قطعات صفحه‌بندی‌شده",
+  a:"محاسبه‌ی مکانیکی سؤال این می‌شود: شماره‌ی قاب بیست‌ویک ضرب در اندازه‌ی صفحه‌ی پانصد و دوازده، به‌علاوه‌ی آفست ششصد و هشتاد و پنج، برابر آدرس فیزیکی یازده‌هزار و چهارصد و سی‌وهفت، یعنی 2CAD در مبنای شانزده. ولی صورت سؤال ناسازگار است: آفست ششصد و هشتاد و پنج از صفحه‌ی پانصد و دوازده بایتی بزرگ‌تر است و قاب بیست‌ویک هم از شانزده قاب حافظه‌ی هشت کیلوبایتی بیشتر است."},
+{ id:"ex4032f9", keys:["پایان ترم ۴۰۳۲ سوال ۹","نقص صفحه fifo آرایه","fifo ۵۱۲"],
+  q:"پایان‌ترم ۴۰۳۲ سؤال ۹: تعداد نقص صفحه با FIFO برای حلقه‌ی آرایه",
+  a:"هر سطر آرایه دقیقاً یک صفحه است و در هر سطر، صفحه‌ی کد و صفحه‌ی داده یکی‌درمیان ارجاع می‌شوند و فقط سه قاب داریم. با FIFO، سطر اول دو نقص، سطر دوم یک نقص و از سطر سوم به بعد چرخه‌ی بیرون‌انداختن صفحه‌ی کد تکرار می‌شود و مجموع نقص صفحه‌ها برای هر پانصد و دوازده سطر می‌شود ششصد و هشتاد و سه تا."},
+{ id:"ex4041m1", keys:["۴۰۴۱ سوال ۱","4041 سوال 1","میانترم ۴۰۴۱ سوال یک","بررسی صحت جملات","جملات صحیح یا غلط"],
+  q:"میانترم ۴۰۴۱ سؤال ۱: بررسی صحت جملات",
+  a:"هر سه جمله غلط‌اند. الف غلط است، چون در سیستم Batch فقط یک جاب در هر لحظه اجرا می‌شود و مالتی‌پروگرمینگ نیست. ب غلط است، چون لینوکس چندکاربره و چندوظیفه‌ای است، نه تک‌کاربره. ج هم غلط است، چون پروسس‌ها با وقفه به حافظه‌ی هم پیام نمی‌دهند و هر پروسس فضای آدرس جدا و حفاظت‌شده‌ی خودش را دارد."},
+{ id:"ex4041m3", keys:["۴۰۴۱ سوال ۳","4041 سوال 3","میانترم ۴۰۴۱ سوال سه","بانکدار سه حالت"],
+  q:"میانترم ۴۰۴۱ سؤال ۳: بانکدار در سه حالت Available",
+  a:"حالت الف با Available دو، دو، دو و سه امن است و یک ترتیب امن آن T4، T0، T1، T2 و T3 است. حالت ب با چهار، چهار، یک و یک هم امن است با ترتیب T4، T1، T0، T2 و T3. حالت ج با سه، صفر، یک و چهار ناامن و بن‌بست است، چون هیچ نخی از منبع B چیزی نمی‌تواند بگیرد و الگوریتم از همان قدم اول گیر می‌کند."},
+{ id:"ex4041f1", keys:["پایان ترم ۴۰۴۱ سوال ۱","تفاوت حافظه اصلی و ثانویه","حافظه اصلی و ثانویه"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۱: تفاوت حافظه‌ی اصلی و ثانویه",
+  a:"حافظه‌ی اصلی سریع است و پردازنده مستقیم به آن دسترسی دارد، ظرفیتش کمتر و قیمتش بیشتر است و فرّار است، یعنی با قطع برق پاک می‌شود؛ برنامه‌ی در حال اجرا در آن قرار می‌گیرد. حافظه‌ی ثانویه کندتر، ارزان‌تر و پرظرفیت‌تر است و غیرفرّار است و برای نگهداری دائمی داده‌ها و فایل‌ها به کار می‌رود."},
+{ id:"ex4041f2", keys:["پایان ترم ۴۰۴۱ سوال ۲","چندوظیفه ای و چندکاربره","چندپردازنده ای","multitasking multiuser"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۲: چندوظیفه‌ای، چندکاربره و چندپردازنده‌ای",
+  a:"چندوظیفه‌ای یعنی یک پردازنده به‌سرعت بین چند برنامه جابه‌جا می‌شود تا همه هم‌زمان به نظر برسند. چندکاربره یعنی چند کاربر با حساب‌های جدا هم‌زمان از یک سیستم استفاده می‌کنند. چندپردازنده‌ای یعنی سیستم چند پردازنده‌ی فیزیکی دارد که واقعاً موازی کار می‌کنند؛ این سه مفهوم مستقل‌اند و یک سیستم می‌تواند هر ترکیبی از آن‌ها باشد."},
+{ id:"ex4041f3", keys:["پایان ترم ۴۰۴۱ سوال ۳","گانت srt و hrrn ۴۰۴۱"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۳: گانت SRT و HRRN",
+  a:"در هر دو الگوریتم SRT و HRRN با Context Switch یک میلی‌ثانیه‌ای، ترتیب اتمام یکسان می‌شود و میانگین زمان چرخش ده و میانگین زمان انتظار پنج میلی‌ثانیه است. زمان‌های اتمام: P0 در سه، P1 در ده، P2 در پانزده، P3 در بیست‌ویک و P4 در بیست‌ونه."},
+{ id:"ex4041f4", keys:["پایان ترم ۴۰۴۱ سوال ۴","کمترین مقدار x","بن بست مقدار x"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۴: کمترین x برای نبود بن‌بست",
+  a:"از منبع R2 سه نمونه هست که یکی دست P1 و یکی دست P3 است، پس یک نمونه آزاد است. کمترین مقدار x برابر یک است؛ چون آن‌وقت P0 همان یک نمونه‌ی آزاد را می‌گیرد و منتظر نمی‌ماند و زنجیره‌ی انتظار چرخه‌ای شکل نمی‌گیرد."},
+{ id:"ex4041f5", keys:["پایان ترم ۴۰۴۱ سوال ۵","first fit و best fit","فیرست فیت و بست فیت"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۵: First Fit و Best Fit",
+  a:"در First Fit بلوک‌های خالی نهایی از چپ به راست صد، صد و هشتاد و هشت، دویست، سیصد و صد و هشتاد و سه کیلوبایت است و درخواست چهارصد و بیست‌وشش کیلوبایتی جا نمی‌شود و تخصیص داده نمی‌شود. در Best Fit هر چهار درخواست تخصیص داده می‌شوند و بلوک‌های نهایی صد، هشتاد و سه، صفر، صد و هشتاد و هشت و صد و هفتاد و چهار کیلوبایت است."},
+{ id:"ex4041f6", keys:["پایان ترم ۴۰۴۱ سوال ۶","ردیف های جدول صفحه ۵۲۴۲۸۸","آدرس فیزیکی ۳۳ بیت"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۶: ردیف‌های جدول صفحه و بیت‌های آدرس فیزیکی",
+  a:"به ازای هر صفحه‌ی مجازی یک ردیف داریم، پس جدول صفحه پانصد و بیست‌وچهار هزار و دویست و هشتاد و هشت ردیف دارد. حافظه‌ی اصلی هشت گیگابایت یعنی دو به توان سی‌وسه بایت است، پس آدرس فیزیکی سی‌وسه بیت دارد."},
+{ id:"ex4041f7", keys:["پایان ترم ۴۰۴۱ سوال ۷","جایگزینی lru رشته ارجاع","تعداد hit و fault"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۷: LRU و تعداد Hit و Fault",
+  a:"با سه قاب و رشته‌ی ارجاع بیست‌تایی سؤال، در LRU تعداد خطاها نه تا و تعداد برخوردها یازده تا است. پس درصد نقص صفحه چهل‌وپنج درصد و درصد برخورد پنجاه‌وپنج درصد است."},
+{ id:"ex4041f8", keys:["پایان ترم ۴۰۴۱ سوال ۸","الگوریتم aging","ایجینگ جایگزینی صفحه"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۸: جایگزینی صفحه با Aging",
+  a:"در Aging هر شمارنده در هر واحد زمانی یک بیت به راست شیفت می‌خورد و بیت مرجع در سمت چپ می‌نشیند. بعد از چهار واحد زمانی شمارنده‌ها می‌شوند: A بیست‌ودو، B دو، C هفتاد و چهار و D چهار. کوچک‌ترین شمارنده مال صفحه‌ی B است، پس صفحه‌ی B جایگزین می‌شود."},
+{ id:"ex4041f9", keys:["پایان ترم ۴۰۴۱ سوال ۹","نقص صفحه fifo ۲۰۰ بایت"],
+  q:"پایان‌ترم ۴۰۴۱ سؤال ۹: تعداد نقص صفحه با FIFO",
+  a:"هر دو سطر آرایه روی هم یک صفحه‌ی داده می‌سازند، پس پنجاه صفحه‌ی داده داریم و صفحه‌ی کد هم یکی است و فقط سه قاب داریم. با FIFO مجموع نقص صفحه‌ها برای کل اجرا شصت‌وهفت تا می‌شود؛ صفحه‌ی داده‌ی اول دو نقص، دومی یک نقص و از سومی به بعد چرخه‌ی بیرون‌افتادن صفحه‌ی کد تکرار می‌شود."}
+];
+
+var SAMPLES = [
+ {t:"میانترم ۴۰۳۱ — سؤال ۳", d:"HRRN؛ Context Switch = ۲ms؛ جدول: P0 ‏(Burst ۳، ورود ۰)، P1 ‏(۶، ۲)، P2 ‏(۱۴، ۴)، P3 ‏(۵، ۶)، P4 ‏(۱۱، ۸). Tt و Tw را حساب کنید.", ask:"حل hrrn"},
+ {t:"میانترم ۴۰۳۱ — سؤال ۴", d:"MLFQ؛ صف اول RR با کوانتوم ۴ms، صف دوم RR با کوانتوم ۸ms، صف سوم FCFS؛ Context Switch = ۲ms. Tt و Tw.", ask:"الگوریتم mlfq را توضیح بده"},
+ {t:"میانترم ۴۰۳۲ — سؤال ۳", d:"سؤال مفهومی درباره‌ی الگوریتم‌های انحصاری (Preemptive) با اشاره به SRT و RR.", ask:"زمان بندی انحصاری و غیر انحصاری چه فرقی دارند"},
+ {t:"میانترم ۴۰۳۲ — سؤال ۴", d:"RR و HRRN؛ Context Switch = ۱ms؛ کوانتوم ۳ms؛ جدول: P0 ‏(ورود ۰، Burst ۱۳)، P1 ‏(۳، ۸)، P2 ‏(۴، ۵)، P3 ‏(۱۶، ۴).", ask:"حل rr"},
+ {t:"میانترم ۴۰۳۲ — سؤال ۵", d:"پروسس با Burst ۳۰ در MLFQ با کوانتوم‌های دوبرابرشونده (۱، ۲، ۴، ۸، ۱۶) در کدام صف تمام می‌شود؟", ask:"برست ۳۰ در کدام صف تمام می‌شود"},
+ {t:"میانترم ۴۰۳۲ — سؤال ۶", d:"گراف تخصیص منابع: R1 و R2 تک‌نمونه‌ای، R3 دونمونه‌ای؛ پروسس‌های P1، P2، P3. ترتیب امن چیست؟ (جواب: P1، P3، P2)", ask:"گراف تخصیص منابع را توضیح بده"},
+ {t:"میانترم ۴۰۴۱ — سؤال ۲", d:"RR با کوانتوم ۲ms، HRRN و Priority غیرانحصاری؛ Context Switch = ۱ms؛ جدول: P1 ‏(Burst ۲، اولویت ۲)، P2 ‏(۱، ۱)، P3 ‏(۸، ۴)، P4 ‏(۴، ۲)، P5 ‏(۵، ۳)؛ عدد بالاتر = اولویت بالاتر.", ask:"حل priority"},
+ {t:"میانترم ۴۰۴۱ — سؤال ۳", d:"الگوریتم بانکدار برای T0 تا T4 با منابع A، B، C، D و سه حالت Available: الف (۲،۲،۲،۳)، ب (۴،۴،۱،۱)، ج (۳،۰،۱،۴). کدام حالت‌ها امن‌اند؟ (جواب: الف و ب امن، ج بن‌بست)", ask:"الگوریتم بانکدار را توضیح بده"}
+];
+
+var CHIPS = ["حالت‌های پروسس را توضیح بده","الگوریتم HRRN چیست؟","الگوریتم بانکدار را توضیح بده","بن‌بست و چهار شرط آن","فرق انحصاری و غیرانحصاری","Context Switch چیست؟"];
+
+/* ================= Helpers ================= */
+function $(id){return document.getElementById(id);}
+function blindMode(){ var t=$("blindToggle"); return !t || t.checked; }
+function continuousMode(){ var t=$("continuousToggle"); return !!t && t.checked; }
+function announce(text){ var el=$("ariaStatus"); if(el) el.textContent=text; }
+function buzz(pattern){ if(!blindMode()) return; try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+function beep(freq, ms){
+  try{
+    var Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
+    var ctx=new Ctx(); var o=ctx.createOscillator(); var g=ctx.createGain();
+    o.frequency.value=freq||880; g.gain.value=0.08; o.connect(g); g.connect(ctx.destination);
+    o.start(); setTimeout(function(){ try{o.stop(); ctx.close();}catch(e){} }, ms||180);
+  }catch(e){}
+}
+function beepPattern(kind){
+  if(kind==="wake"){ beep(880,160); setTimeout(function(){beep(1320,160);},200); }
+  else if(kind==="listen"){ beep(660,140); }
+  else if(kind==="error"){ beep(220,320); }
+  else { beep(880,180); }
+}
+/* Wake Lock: keep the screen on after the single start gesture, so no re-touch is needed */
+var wakeLock=null;
+function requestWakeLock(){
+  try{
+    if(navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request("screen").then(function(wl){
+        wakeLock=wl;
+        wl.addEventListener("release", function(){ wakeLock=null; if(shouldListen) requestWakeLock(); });
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible" && shouldListen) requestWakeLock(); });
+/* Silent keep-alive audio: keeps the Bluetooth headset route + media button alive */
+var keepAliveAudio=null;
+function makeSilentWavUrl(){
+  var sampleRate=8000, seconds=2, n=sampleRate*seconds;
+  var buf=new ArrayBuffer(44+n), v=new DataView(buf);
+  function ws(off,s){ for(var i=0;i<s.length;i++) v.setUint8(off+i, s.charCodeAt(i)); }
+  ws(0,"RIFF"); v.setUint32(4,36+n,true); ws(8,"WAVEfmt "); v.setUint32(16,16,true);
+  v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sampleRate,true);
+  v.setUint32(28,sampleRate,true); v.setUint16(32,1,true); v.setUint16(34,8,true);
+  ws(36,"data"); v.setUint32(40,n,true);
+  for(var i=0;i<n;i++) v.setUint8(44+i,128);
+  return URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+}
+function startKeepAlive(){
+  try{
+    if(!keepAliveAudio){ keepAliveAudio=new Audio(); keepAliveAudio.loop=true; keepAliveAudio.src=makeSilentWavUrl(); keepAliveAudio.volume=0.01; }
+    var p=keepAliveAudio.play(); if(p&&p.catch) p.catch(function(){});
+    if("mediaSession" in navigator){
+      try{ navigator.mediaSession.metadata=new MediaMetadata({title:"دستیار صوتی سیستم‌عامل — در حال گوش‌دادن", artist:"کژال", album:"فقط بگو: کژال"}); }catch(e){}
+      try{
+        navigator.mediaSession.setActionHandler("play", function(){ if(!shouldListen) startAll(); });
+        navigator.mediaSession.setActionHandler("pause", function(){ if(speaking){ stopSpeaking(); } else if(shouldListen){ stopAll(); } });
+        navigator.mediaSession.setActionHandler("stop", function(){ stopAll(); });
+        navigator.mediaSession.setActionHandler("previoustrack", function(){ if(lastAnswer) speak(lastAnswer); });
+        navigator.mediaSession.setActionHandler("nexttrack", function(){ speakHelp(); });
+      }catch(e){}
+    }
+  }catch(e){}
+}
+function stopKeepAlive(){ try{ if(keepAliveAudio) keepAliveAudio.pause(); }catch(e){} }
+function normalize(s){
+  return (s||"").toLowerCase()
+    .replace(/[ي]/g,"ی").replace(/[ك]/g,"ک").replace(/[ة]/g,"ه")
+    .replace(/[ً-ٰٟ]/g,"").replace(/‌/g," ").replace(/\s+/g," ").trim();
+}
+function findAnswer(raw){
+  var t = normalize(raw);
+  var best=null, bestScore=0;
+  for (var i=0;i<KB.length;i++){
+    var score=0;
+    for (var j=0;j<KB[i].keys.length;j++){
+      var k=normalize(KB[i].keys[j]);
+      if (k && t.indexOf(k)>=0) score += k.length;
+    }
+    if (score>bestScore){bestScore=score;best=KB[i];}
+  }
+  return bestScore>0 ? best : null;
+}
+function addLog(who, text, cls){
+  var div=document.createElement("div");
+  div.className="log-item "+(cls||"");
+  var w=document.createElement("span"); w.className="who"; w.textContent=who;
+  var p=document.createElement("p"); p.textContent=text;
+  div.appendChild(w); div.appendChild(p);
+  $("log").appendChild(div);
+  div.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+/* ================= TTS =================
+   Playback chain, in order — everything runs in the browser, no backend,
+   no API key anywhere:
+   1) Microsoft Edge Read-Aloud TTS, spoken directly from this page over a
+      WebSocket to speech.platform.bing.com with the Sec-MS-GEC token
+      generated locally from the current timestamp (the same v2 algorithm
+      that produced real fa-IR MP3 server-side for this project). Voice:
+      fa-IR-DilaraNeural, with fa-IR-FaridNeural as the in-engine retry.
+      Audio chunks are reassembled into an MP3 blob and played through an
+      <audio> element primed inside the start gesture.
+   2) Google's free translate TTS (client=tw-ob, with a locally generated
+      tk token), played as a real MP3 stream; each chunk must reach the
+      "playing" state, the second Google host is tried on failure, and
+      only if EVERY chunk fails does the chain fall through.
+   3) Device speechSynthesis with a loaded, explicitly chosen Persian
+      voice, with its own start watchdog.
+   If all three engines fail, a clear visible error is shown on the page
+   (plus beep + long buzz) instead of silence, and the written answer
+   stays on screen.
+   Long answers are split into short chunks: the Google endpoint rejects
+   long texts, and Chrome/Android silently drops or stalls device
+   utterances longer than ~200 characters. */
+var lastAnswer=null, speaking=false;
+var speakSeq=0;              /* bumped by every speak()/stopSpeaking(); stale callbacks check it */
+var ttsMode=null;            /* "device" | "google" */
+var synthWatchdog=null, synthResumeTimer=null, synthStarted=false;
+var fbAudio=null, fbQueue=[], fbIndex=0, fbDone=null;
+
+function getVoicesNow(){ try{ return window.speechSynthesis ? (speechSynthesis.getVoices()||[]) : []; }catch(e){ return []; } }
+function ensureVoices(cb){
+  if (!window.speechSynthesis){ cb([]); return; }
+  var vs=getVoicesNow();
+  if (vs.length){ cb(vs); return; }
+  var done=false;
+  function finish(){ if(done) return; done=true; cb(getVoicesNow()); }
+  try{
+    speechSynthesis.addEventListener("voiceschanged", function h(){
+      try{ speechSynthesis.removeEventListener("voiceschanged", h); }catch(e){}
+      finish();
+    });
+  }catch(e){}
+  try{ speechSynthesis.onvoiceschanged=finish; }catch(e){}
+  setTimeout(finish, 900);
+}
+function pickVoice(vs){
+  vs = vs || getVoicesNow();
+  var fa=[], i;
+  for (i=0;i<vs.length;i++){ if (/^fa([-_]|$)/i.test(vs[i].lang||"")) fa.push(vs[i]); }
+  for (i=0;i<fa.length;i++){ if (fa[i].localService) return fa[i]; }
+  for (i=0;i<fa.length;i++){ if (/google/i.test(fa[i].name||"")) return fa[i]; }
+  if (fa.length) return fa[0];
+  return null;
+}
+if (window.speechSynthesis){ try{ speechSynthesis.getVoices(); }catch(e){} }
+
+function splitSentences(text){
+  var s=String(text||""), out=[], cur="", i, ch;
+  for (i=0;i<s.length;i++){
+    ch=s.charAt(i); cur+=ch;
+    if (ch==="."||ch==="؟"||ch==="!"||ch==="؛"||ch==="…"||ch==="\n"){ out.push(cur); cur=""; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function chunkText(text, maxLen){
+  maxLen=maxLen||180;
+  var sents=splitSentences(text), chunks=[], cur="", i, s;
+  function pushCur(){ if (cur.trim()) chunks.push(cur.trim()); cur=""; }
+  for (i=0;i<sents.length;i++){
+    s=sents[i];
+    while (s.length>maxLen){
+      pushCur();
+      var cut=s.lastIndexOf(" ", maxLen); if (cut<40) cut=maxLen;
+      chunks.push(s.slice(0,cut).trim()); s=s.slice(cut);
+    }
+    if ((cur+" "+s).length>maxLen) pushCur();
+    cur = cur ? cur+" "+s : s;
+  }
+  pushCur();
+  return chunks.length ? chunks : [String(text||"")];
+}
+
+function finishSpeaking(done){
+  speaking=false; ttsMode=null;
+  document.body.classList.remove("speaking");
+  if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+  if (synthResumeTimer){ clearInterval(synthResumeTimer); synthResumeTimer=null; }
+  if (shouldListen && continuousMode() && wakeMode()){ armed=true; armTimerReset(90000); }
+  if (shouldListen) startRecognition();
+  setStatus(shouldListen? (armed? "سؤال بعدی را بگو — «کژال» لازم نیست" : (wakeMode()? "منتظر «کژال» هستم" : "دارم گوش می‌دهم؛ سؤالت را بپرس")) : "خاموش است",
+    armed? "فقط سؤالت را بگو؛ یا بگو «کژال، ساکت»" : "");
+  buzz([60]);
+  if (done) done();
+}
+
+/* ---- Primary: Microsoft Edge TTS over WebSocket, entirely in-browser ----
+   Protocol (Edge Read Aloud): open
+   wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1
+   with TrustedClientToken + a Sec-MS-GEC token = uppercase hex SHA-256 of
+   (current time in Windows ticks, rounded down to 300 s) + the trusted
+   token. Send a speech.config message (MP3 output format), then an SSML
+   message; binary replies carry a 2-byte big-endian header length, a text
+   header, then MP3 bytes; a text reply with Path: turn.end ends the turn. */
+var EDGE_TRUSTED_TOKEN="6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+var EDGE_VOICES=["fa-IR-DilaraNeural","fa-IR-FaridNeural"];
+function sha256Hex(str){
+  var enc=new TextEncoder().encode(str);
+  return crypto.subtle.digest("SHA-256", enc).then(function(buf){
+    var bytes=new Uint8Array(buf), hex="";
+    for (var i=0;i<bytes.length;i++){ var h=bytes[i].toString(16); hex+=(h.length<2?"0":"")+h; }
+    return hex.toUpperCase();
+  });
+}
+function edgeGecToken(){
+  var secs=Math.floor(Date.now()/1000);
+  secs=secs-(secs%300);
+  var ticks=(BigInt(secs)+11644473600n)*10000000n;
+  return sha256Hex(ticks.toString()+EDGE_TRUSTED_TOKEN);
+}
+function escapeXml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+}
+function edgeSynthesize(text, voiceName, ratePct){
+  return edgeGecToken().then(function(gec){
+    return new Promise(function(resolve, reject){
+      var connId=""; var hex="0123456789abcdef";
+      for (var i=0;i<32;i++) connId+=hex.charAt(Math.floor(Math.random()*16));
+      var url="wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
+        +"?TrustedClientToken="+EDGE_TRUSTED_TOKEN
+        +"&Sec-MS-GEC="+gec
+        +"&Sec-MS-GEC-Version=1-130.0.2849.68"
+        +"&ConnectionId="+connId;
+      var ws;
+      try{ ws=new WebSocket(url); }catch(e){ reject(e); return; }
+      ws.binaryType="arraybuffer";
+      var chunks=[], settled=false, timer=null;
+      function fail(err){ if(settled) return; settled=true; if(timer) clearTimeout(timer); try{ ws.close(); }catch(e){} reject(err||new Error("edge-ws")); }
+      timer=setTimeout(function(){ fail(new Error("edge-timeout")); }, 20000);
+      ws.onerror=function(){ fail(new Error("edge-error")); };
+      ws.onclose=function(){ if(!settled) fail(new Error("edge-closed")); };
+      ws.onopen=function(){
+        try{
+          var cfg='{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
+          ws.send("X-Timestamp:"+new Date().toISOString()+"\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n"+cfg);
+          var rateStr=(ratePct>=0?"+":"")+ratePct+"%";
+          var ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='fa-IR'><voice name='"+voiceName+"'><prosody pitch='+0Hz' rate='"+rateStr+"'>"+escapeXml(text)+"</prosody></voice></speak>";
+          ws.send("X-RequestId:"+connId+"\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n"+ssml);
+        }catch(e){ fail(e); }
+      };
+      ws.onmessage=function(ev){
+        if (typeof ev.data==="string"){
+          if (ev.data.indexOf("Path:turn.end")>=0 || ev.data.indexOf("Path: turn.end")>=0){
+            if (settled) return; settled=true; if(timer) clearTimeout(timer);
+            try{ ws.close(); }catch(e){}
+            if (chunks.length){ resolve(new Blob(chunks,{type:"audio/mpeg"})); }
+            else reject(new Error("edge-empty"));
+          }
+          return;
+        }
+        try{
+          var dv=new DataView(ev.data);
+          if (ev.data.byteLength<2) return;
+          var hLen=dv.getInt16(0,false);
+          if (ev.data.byteLength>2+hLen) chunks.push(ev.data.slice(2+hLen));
+        }catch(e){}
+      };
+    });
+  });
+}
+var edgeQueue=[], edgeIndex=0, edgeDone=null, edgeFailCb=null, edgeAudioUrl=null;
+function playEdgeTTS(text, done, failCb){
+  if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+  if (synthResumeTimer){ clearInterval(synthResumeTimer); synthResumeTimer=null; }
+  try{ if (window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  ttsMode="edge"; speaking=true; document.body.classList.add("speaking");
+  edgeQueue=chunkText(text, 400); edgeIndex=0; edgeDone=done||null; edgeFailCb=failCb||null;
+  var mySeq=speakSeq;
+  var rate=parseFloat($("rateRange").value)||0.95;
+  var ratePct=Math.round((rate-1)*100);
+  ensureFbAudio();
+  fbAudio.onended=function(){ if (mySeq!==speakSeq) return; edgeIndex++; playNextEdgeChunk(mySeq, ratePct, 0); };
+  fbAudio.onplaying=null; fbAudio.onplay=null;
+  fbAudio.onerror=function(){ if (mySeq!==speakSeq || !speaking) return; edgeTotalFail(mySeq); };
+  playNextEdgeChunk(mySeq, ratePct, 0);
+}
+function edgeTotalFail(mySeq){
+  if (mySeq!==speakSeq) return;
+  var f=edgeFailCb; edgeDone=null; edgeFailCb=null;
+  speaking=false; ttsMode=null; document.body.classList.remove("speaking");
+  if (f) f();
+}
+function playNextEdgeChunk(mySeq, ratePct, voiceIdx){
+  if (mySeq!==speakSeq || !speaking) return;
+  if (edgeIndex>=edgeQueue.length){
+    var d=edgeDone; edgeDone=null; edgeFailCb=null;
+    finishSpeaking(d); return;
+  }
+  var chunk=edgeQueue[edgeIndex];
+  edgeSynthesize(chunk, EDGE_VOICES[Math.min(voiceIdx, EDGE_VOICES.length-1)], ratePct).then(function(blob){
+    if (mySeq!==speakSeq || !speaking) return;
+    if (edgeAudioUrl){ try{ URL.revokeObjectURL(edgeAudioUrl); }catch(e){} }
+    edgeAudioUrl=URL.createObjectURL(blob);
+    try{
+      fbAudio.src=edgeAudioUrl;
+      var p=fbAudio.play();
+      if (p && p.catch) p.catch(function(){ if (mySeq===speakSeq && speaking) edgeTotalFail(mySeq); });
+    }catch(e){ edgeTotalFail(mySeq); }
+  }).catch(function(){
+    if (mySeq!==speakSeq || !speaking) return;
+    if (voiceIdx < EDGE_VOICES.length-1){ playNextEdgeChunk(mySeq, ratePct, voiceIdx+1); return; }
+    edgeTotalFail(mySeq);
+  });
+}
+
+/* ---- Fallback 1: Google free translate TTS, played as audio ----
+   Plain MP3 playback works in Chrome and in WebViews alike. The element is
+   primed inside the start gesture (primeTTS) so play() calls that happen
+   later — e.g. after a voice-recognition result — are not autoplay-blocked.
+   Every chunk is verified: it must reach the "playing" state within a few
+   seconds, otherwise the other Google host is tried; failed chunks are
+   counted, and if ALL chunks fail, failCb runs (device-voice fallback)
+   instead of the old behaviour of silently skipping to the end. */
+var GOOGLE_TTS_HOSTS=["translate.google.com","translate.googleapis.com"];
+var fbStarted=false, fbAttemptDone=true, fbFailedChunks=0, fbHostIdx=0, fbChunkTimer=null, fbFailCb=null;
+function ensureFbAudio(){
+  if (!fbAudio){ fbAudio=new Audio(); fbAudio.preload="auto"; }
+  return fbAudio;
+}
+function primeTTS(){
+  try{
+    if (speaking) return;
+    var a=ensureFbAudio();
+    a.src=makeSilentWavUrl();
+    var p=a.play();
+    if (p && p.catch) p.catch(function(){});
+    setTimeout(function(){
+      if (!speaking && ttsMode!=="google"){ try{ a.pause(); a.removeAttribute("src"); a.load(); }catch(e){} }
+    }, 400);
+  }catch(e){}
+}
+/* Google translate_tts tk token, generated locally from the chunk text
+   (the standard TKK-seeded shift/xor algorithm; no key, no server). */
+var GOOGLE_TKK="406398.2087938570";
+function googleTkToken(text){
+  function xr(a, ops){
+    for (var c=0;c<ops.length-2;c+=3){
+      var d=ops.charAt(c+2);
+      d = d>="a" ? d.charCodeAt(0)-87 : parseInt(d,10);
+      d = ops.charAt(c+1)==="+" ? (a>>>d) : (a<<d);
+      a = ops.charAt(c)==="+" ? (a+d)&4294967295 : a^d;
+    }
+    return a;
+  }
+  var parts=GOOGLE_TKK.split(".");
+  var b=parseInt(parts[0],10);
+  var bytes=new TextEncoder().encode(String(text||""));
+  var a=b, i;
+  for (i=0;i<bytes.length;i++){ a+=bytes[i]; a=xr(a,"+-a^+6"); }
+  a=xr(a,"+-3^+b+-f");
+  a^=parseInt(parts[1],10);
+  if (a<0) a=(a&2147483647)+2147483648;
+  a%=1000000;
+  return a.toString()+"."+(a^b);
+}
+function googleTTSUrl(chunk){
+  var host=GOOGLE_TTS_HOSTS[Math.min(fbHostIdx, GOOGLE_TTS_HOSTS.length-1)];
+  return "https://"+host+"/translate_tts?ie=UTF-8&client=tw-ob&tl=fa&tk="+googleTkToken(chunk)+"&q="+encodeURIComponent(chunk);
+}
+function playGoogleTTS(text, done, failCb){
+  if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+  if (synthResumeTimer){ clearInterval(synthResumeTimer); synthResumeTimer=null; }
+  try{ if (window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  ttsMode="google"; speaking=true; document.body.classList.add("speaking");
+  fbQueue=chunkText(text, 170); fbIndex=0; fbDone=done||null; fbFailCb=failCb||null;
+  fbFailedChunks=0; fbHostIdx=0;
+  ensureFbAudio();
+  var mySeq=speakSeq;
+  fbAudio.onended=function(){ if (mySeq!==speakSeq) return; if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; } fbIndex++; playNextGoogleChunk(mySeq); };
+  fbAudio.onplaying=function(){ fbStarted=true; fbAttemptDone=true; if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; } };
+  fbAudio.onplay=fbAudio.onplaying;
+  fbAudio.onerror=function(){ if (mySeq!==speakSeq) return; googleChunkFailed(mySeq); };
+  playNextGoogleChunk(mySeq);
+}
+function googleChunkFailed(mySeq){
+  if (mySeq!==speakSeq || !speaking || fbAttemptDone) return;
+  fbAttemptDone=true;
+  if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; }
+  if (fbHostIdx < GOOGLE_TTS_HOSTS.length-1){ fbHostIdx++; tryGoogleChunk(mySeq); return; }
+  fbFailedChunks++; fbIndex++; playNextGoogleChunk(mySeq);
+}
+function tryGoogleChunk(mySeq){
+  fbStarted=false; fbAttemptDone=false;
+  try{
+    fbAudio.src=googleTTSUrl(fbQueue[fbIndex]);
+    var p=fbAudio.play();
+    if (p && p.catch) p.catch(function(){ if (mySeq===speakSeq && speaking) googleChunkFailed(mySeq); });
+  }catch(e){ googleChunkFailed(mySeq); return; }
+  if (fbChunkTimer) clearTimeout(fbChunkTimer);
+  fbChunkTimer=setTimeout(function(){ if (mySeq===speakSeq && speaking && !fbStarted) googleChunkFailed(mySeq); }, 3500);
+}
+function playNextGoogleChunk(mySeq){
+  if (mySeq!==speakSeq || !speaking) return;
+  if (fbIndex>=fbQueue.length){
+    if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; }
+    var totalFail = fbQueue.length>0 && fbFailedChunks>=fbQueue.length;
+    var d=fbDone, f=fbFailCb; fbDone=null; fbFailCb=null;
+    if (totalFail && f){ speaking=false; ttsMode=null; document.body.classList.remove("speaking"); f(); return; }
+    finishSpeaking(d); return;
+  }
+  fbHostIdx=0;
+  tryGoogleChunk(mySeq);
+}
+function stopFallbackAudio(){
+  fbQueue=[]; fbIndex=0; fbDone=null; fbFailCb=null;
+  if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; }
+  if (fbAudio){ try{ fbAudio.pause(); fbAudio.removeAttribute("src"); fbAudio.load(); }catch(e){} }
+}
+
+/* ---- Fallback: device TTS with a loaded, explicitly chosen Persian voice ----
+   Used only when Google audio failed on every chunk. Any failure here is
+   reported through onFail (never bounced back to Google — that was a loop);
+   speak() turns a total failure into a visible error status. */
+function speakWithDevice(text, vs, done, onFail){
+  var voice=pickVoice(vs);
+  if (!voice){ if (onFail) onFail(); return; }  /* no Persian voice on this device at all */
+  var chunks=chunkText(text, 180), idx=0, mySeq=speakSeq;
+  var rate=parseFloat($("rateRange").value)||0.95;
+  ttsMode="device"; synthStarted=false; speaking=true; document.body.classList.add("speaking");
+  function fail(){
+    if (mySeq!==speakSeq) return;
+    if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+    if (synthResumeTimer){ clearInterval(synthResumeTimer); synthResumeTimer=null; }
+    try{ speechSynthesis.cancel(); }catch(e){}
+    speaking=false; ttsMode=null; document.body.classList.remove("speaking");
+    if (onFail) onFail(); else finishSpeaking(done);
+  }
+  /* If the engine never actually starts speaking, report failure. */
+  synthWatchdog=setTimeout(function(){
+    if (mySeq===speakSeq && speaking && ttsMode==="device" && !synthStarted) fail();
+  }, 2500);
+  /* Chrome stalls long synthesis unless resume() is nudged while paused. */
+  synthResumeTimer=setInterval(function(){
+    try{ if (speechSynthesis.speaking && speechSynthesis.paused) speechSynthesis.resume(); }catch(e){}
+  }, 5000);
+  function next(){
+    if (mySeq!==speakSeq || !speaking) return;
+    if (idx>=chunks.length){ finishSpeaking(done); return; }
+    var u=new SpeechSynthesisUtterance(chunks[idx]);
+    u.lang=voice.lang||"fa-IR";
+    u.voice=voice;
+    u.rate=rate;
+    u.onstart=function(){
+      synthStarted=true;
+      if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+    };
+    u.onend=function(){ idx++; next(); };
+    u.onerror=function(ev){
+      var err=(ev && ev.error) ? String(ev.error) : "";
+      if (err==="interrupted" || err==="canceled") return;
+      if (mySeq===speakSeq && speaking) fail();
+    };
+    try{
+      speechSynthesis.speak(u);
+      if (speechSynthesis.paused) speechSynthesis.resume();
+    }catch(e){ fail(); }
+  }
+  next();
+}
+var HELP_TEXT="راهنمای صوتی. برای پرسیدن سؤال، بگو کژال و بعد سؤالت را بپرس. در حالت گفت‌وگوی پیوسته، بعد از سؤال اول، برای سؤال‌های بعدی لازم نیست دوباره کژال بگی؛ فقط سؤالت را بگو. فرمان‌ها: بگو ساکت، تا صدا همان لحظه قطع شود. بگو تکرار کن، تا جواب آخر دوباره خوانده شود. بگو موضوع‌ها را بگو، تا فهرست موضوع‌هایی را که بلدم بشنوی. بگو آهسته‌تر بخوان یا سریع‌تر بخوان، تا سرعت صدا عوض شود. بگو وضعیت چیه، تا بگویم دارم گوش می‌دهم یا نه. بگو خداحافظ، تا گوش‌دادن کامل متوقف شود. موضوع‌ها: حالت‌های پروسس، زمان‌بندی‌ها، بن‌بست و الگوریتم بانکدار.";
+var TOPICS_TEXT="این موضوع‌ها را بلدم: حالت‌های مختلف پروسس و PCB. تعریف سیستم‌عامل. معیارهای زمان‌بندی و فرمول زمان چرخش و زمان انتظار. فرق زمان‌بندی انحصاری و غیرانحصاری. الگوریتم‌های FCFS، و SJF و SRTF، و Round Robin، و اولویتی و مشکل گرسنگی، و HRRN، و MLFQ. بن‌بست و چهار شرط آن. گراف تخصیص منابع. الگوریتم بانکدار. و Context Switch. به‌همراه حل هر سی‌وهشت سؤال نمونه‌ی میانترم و پایان‌ترم ۴۰۳۱ و ۴۰۳۲ و ۴۰۴۱؛ کافی است بگی مثلاً: میانترم ۴۰۳۲ سوال چهار، یا پایان‌ترم ۴۰۴۱ سوال هفت. حالا سؤالت را بپرس.";
+function speakHelp(){ speak(HELP_TEXT); }
+function speakFailed(done){
+  /* All three playback engines failed: never end in silence — say so on
+     screen, with a beep and a long buzz so a blind user notices too, and
+     leave the written answer visible in the answer box and the log. */
+  finishSpeaking(done);
+  beepPattern("error"); buzz([300]);
+  setStatus("صدا پخش نشد","هر سه موتور صدا جواب ندادند: نه صدای اِج مایکروسافت، نه صدای گوگل و نه صدای گوشی. اتصال اینترنت را چک کن و دکمه‌ی «تست صدا» را دوباره بزن؛ جواب همین‌جا روی صفحه نوشته شده است.");
+}
+function speak(text, done){
+  speakSeq++;
+  lastAnswer=text;
+  var aa=$("ariaAnswer"); if(aa) aa.textContent=text;
+  announce(text);
+  if (!$("speakToggle").checked){ if(done)done(); return; }
+  stopFallbackAudio();
+  primeTTS(); /* prime the shared <audio> element inside this call stack, so the async play() that follows a button tap is not autoplay-blocked */
+  edgeQueue=[]; edgeDone=null; edgeFailCb=null;
+  if (window.speechSynthesis){ try{ speechSynthesis.cancel(); }catch(e){} }
+  speaking=true; document.body.classList.add("speaking");
+  setStatus("در حال خواندن جواب…","جواب با صدای فارسی دل‌آرا در هندزفری خوانده می‌شود؛ برای قطع، بگو «کژال، ساکت»");
+  stopRecognition();
+  var mySeq=speakSeq;
+  /* Edge TTS first: real Persian MP3 synthesized in the browser itself. */
+  playEdgeTTS(text, done, function(){
+    if (mySeq!==speakSeq) return;
+    /* Edge WebSocket failed: fall back to Google audio. */
+    speaking=true; document.body.classList.add("speaking");
+    playGoogleTTS(text, done, function(){
+      if (mySeq!==speakSeq) return;
+      /* Google audio failed on every chunk: fall back to the device voice. */
+      if (!window.speechSynthesis){ speakFailed(done); return; }
+      speaking=true; document.body.classList.add("speaking");
+      ensureVoices(function(vs){
+        if (mySeq!==speakSeq) return;
+        speakWithDevice(text, vs, done, function(){
+          if (mySeq!==speakSeq) return;
+          speakFailed(done);
+        });
+      });
+    });
+  });
+}
+function stopSpeaking(){
+  speakSeq++;
+  edgeQueue=[]; edgeDone=null; edgeFailCb=null;
+  if (window.speechSynthesis){ try{ speechSynthesis.cancel(); }catch(e){} }
+  if (synthWatchdog){ clearTimeout(synthWatchdog); synthWatchdog=null; }
+  if (synthResumeTimer){ clearInterval(synthResumeTimer); synthResumeTimer=null; }
+  stopFallbackAudio();
+  speaking=false; ttsMode=null; document.body.classList.remove("speaking");
+}
+
+/* ================= Answering ================= */
+function answerQuestion(raw){
+  var q=(raw||"").trim(); if(!q) return;
+  addLog("تو", q, "me");
+  var nq=normalize(q);
+  /* ---- Voice-only commands: everything a blind user needs, without touching the phone ---- */
+  if (q.length<28 && /ساکت|قطع کن|بس کن|استپ|سکوت/.test(nq)){ stopSpeaking(); buzz([220]); setStatus("ساکت شدم","بگو «کژال» و سؤال بعدی را بپرس"); speak("ساکت شدم. سؤال بعدی را بپرس."); return; }
+  if (q.length<28 && /خداحافظ|متوقف شو|کاملا قطع|کاملاً قطع|بسه دیگه/.test(nq)){ stopAll(); speak("خداحافظ. گوش‌دادن متوقف شد. برای شروع دوباره، دکمه‌ی شروع بالای صفحه را بزن یا دکمه‌ی هندزفری را بزن."); return; }
+  if (/راهنما|کمک|چه فرمان|فرمان ها|فرمان‌ها/.test(nq) && q.length<30){ speakHelp(); return; }
+  if (/موضوع ها|موضوع‌ها|چی بلدی|چه چیزهایی بلدی|فهرست موضوع/.test(nq) && q.length<32){ speak(TOPICS_TEXT); return; }
+  if (/تکرار کن|دوباره بخوان|دوباره بگو/.test(nq) && q.length<28){ if(lastAnswer) speak(lastAnswer); else speak("هنوز جوابی نداده‌ام. اول یک سؤال بپرس."); return; }
+  if (/آهسته تر|آهسته‌تر|یواش تر|آرام تر/.test(nq) && q.length<28){ var r1=Math.max(0.7,(parseFloat($("rateRange").value)||0.95)-0.15); $("rateRange").value=r1; speak("از این به بعد آهسته‌تر می‌خوانم. سؤالت را بپرس."); return; }
+  if (/سریع تر|سریع‌تر|تندتر/.test(nq) && q.length<28){ var r2=Math.min(1.3,(parseFloat($("rateRange").value)||0.95)+0.15); $("rateRange").value=r2; speak("از این به بعد سریع‌تر می‌خوانم. سؤالت را بپرس."); return; }
+  if (/وضعیت/.test(nq) && q.length<24){ speak(shouldListen? "دارم گوش می‌دهم و منتظر سؤال تو هستم. بگو کژال و سؤالت را بپرس." : "الان خاموشم و گوش نمی‌دهم. برای شروع، دکمه‌ی شروع بالای صفحه را بزن یا دکمه‌ی هندزفری را بزن."); return; }
+  var hit=findAnswer(q);
+  var ans, title;
+  if (hit){ title=hit.q; ans=hit.a; }
+  else{
+    title=q;
+    ans="این سؤال را در جزوه‌هایی که خوانده‌ام پیدا نکردم. موضوع‌هایی که بلدم این‌ها هستند: حالت‌های پروسس و PCB، زمان‌بندی‌های FCFS و SJF و SRTF و Round Robin و اولویتی و HRRN و MLFQ، فرمول‌های زمان چرخش و انتظار، Context Switch، و از فصل بن‌بست: چهار شرط بن‌بست، گراف تخصیص منابع و الگوریتم بانکدار، به‌همراه حل نمونه‌سؤال‌های میانترم ۴۰۳۱ و ۴۰۳۲ و ۴۰۴۱. سؤالت را با یکی از این کلیدواژه‌ها دوباره بپرس.";
+  }
+  $("answerQ").textContent="سؤال: "+title;
+  $("answerA").textContent=ans;
+  $("answerBox").classList.add("show");
+  addLog("کژال", ans, "");
+  speak(ans);
+}
+
+/* ================= Speech recognition ================= */
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var recog=null, listening=false, shouldListen=false, armed=false, restartTimer=null;
+function wakeMode(){ return $("wakeToggle").checked; }
+var armTimer=null;
+function armTimerReset(ms){
+  clearTimeout(armTimer);
+  armTimer=setTimeout(function(){ armed=false; if(listening&&!speaking) setStatus("منتظر «کژال» هستم","بگو: کژال، و بعد سؤالت"); }, ms||60000);
+}
+function setStatus(main, sub){
+  $("statusText").innerHTML="";
+  var t=document.createTextNode(main); $("statusText").appendChild(t);
+  if (sub){ var s=document.createElement("small"); s.textContent=sub; $("statusText").appendChild(s); }
+  $("orbLabel").textContent = speaking ? "در حال پخش" : (listening ? (armed? "سؤال را بگو" : "در حال گوش‌دادن") : "شروع");
+  announce(main+(sub? " — "+sub : ""));
+}
+function buildRecognition(){
+  if (!SR) return null;
+  var r=new SR();
+  r.lang="fa-IR"; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
+  r.onresult=function(ev){
+    var interim="", finalText="";
+    for (var i=ev.resultIndex;i<ev.results.length;i++){
+      if (ev.results[i].isFinal) finalText+=ev.results[i][0].transcript;
+      else interim+=ev.results[i][0].transcript;
+    }
+    var shown=finalText||interim;
+    if (shown){ $("liveText").textContent=shown; $("liveText").className="live-text"+(finalText?"":" interim"); }
+    var norm=normalize(finalText);
+    if (!finalText) return;
+    if (speaking) return;
+    if (wakeMode() && !armed){
+      if (/کژال|کجال|کژال|گجال|کجار/.test(norm)){
+        var rest=norm.replace(/.*?(کژال|کجال|گجال|کجار)/,"").trim();
+        if (rest.length>=4){ answerQuestion(rest); }
+        else{
+          armed=true;
+          setStatus("شنیدم! سؤالت را بپرس","بدون مکث طولانی، سؤال را کامل بگو");
+          beepPattern("wake"); buzz([80,60,80]);
+          speak("بپرس", function(){});
+          armTimerReset(blindMode()? 60000 : 20000);
+        }
+      }
+    } else if (wakeMode() && armed){
+      armed=false;
+      answerQuestion(finalText);
+    } else {
+      answerQuestion(finalText);
+    }
+  };
+  r.onend=function(){
+    listening=false; document.body.classList.remove("listening");
+    if (shouldListen && !speaking){
+      clearTimeout(restartTimer);
+      restartTimer=setTimeout(function(){ startRecognition(); }, 350);
+    } else if (!speaking){
+      setStatus("خاموش است","دکمه‌ی شروع را بزن و اجازه‌ی میکروفون را بده");
+    }
+  };
+  r.onerror=function(ev){
+    if (ev.error==="not-allowed" || ev.error==="service-not-allowed"){
+      shouldListen=false; startedOnce=false;
+      beepPattern("error"); buzz([300]);
+      var sc=$("startCard"); if(sc) sc.hidden=false;
+      setStatus("اجازه‌ی میکروفون داده نشد","دوباره دکمه‌ی «شروع» را بزن و این بار اجازه‌ی میکروفون را تأیید کن");
+    }
+  };
+  return r;
+}
+function startRecognition(){
+  if (!SR || speaking) return;
+  if (!recog) recog=buildRecognition();
+  if (!recog) return;
+  try{ recog.start(); listening=true; document.body.classList.add("listening");
+    setStatus(wakeMode()? "منتظر «کژال» هستم" : "دارم گوش می‌دهم؛ سؤالت را بپرس",
+      wakeMode()? "بگو: «کژال» و بعد سؤالت را بپرس" : "هر سؤالی بگویی جواب می‌دهم");
+  }catch(e){ /* already started */ listening=true; }
+}
+function stopRecognition(){
+  if (recog){ try{ recog.stop(); }catch(e){} }
+  listening=false; document.body.classList.remove("listening");
+}
+/* ================= UI wiring ================= */
+var startedOnce=false;
+function startAll(){
+  var sc=$("startCard"); if(sc) sc.hidden=true;
+  if (!SR){ startedOnce=true; $("unsupportedBox").classList.add("show"); setStatus("تشخیص گفتار در این مرورگر نیست","سؤال را تایپ کن یا روی سؤال‌های آماده بزن؛ جواب با صدا پخش می‌شود"); beepPattern("error"); buzz([300]); return; }
+  var first=!startedOnce; startedOnce=true;
+  shouldListen=true; armed=false;
+  requestWakeLock(); startKeepAlive(); primeTTS();
+  buzz([70]); beepPattern("listen");
+  startRecognition();
+  if (first){
+    /* Spoken onboarding: a blind user hears exactly what to do, no reading needed.
+       Guard: if that same first tap was on a «پخش» button and an answer is already
+       being spoken, the greeting must not cancel it. */
+    var seqAtStart=speakSeq;
+    setTimeout(function(){
+      if (speakSeq!==seqAtStart || speaking) return;
+      speak("شروع شد. من کژالم و دارم گوش می‌دهم. گوشی را کنار بگذار؛ دیگر هیچ لمسی لازم نیست. بگو کژال و سؤالت را بپرس. برای شنیدن همه‌ی فرمان‌ها، هر وقت خواستی بگو: کژال، راهنما.");
+    }, 600);
+  }
+}
+function stopAll(){
+  shouldListen=false; armed=false; clearTimeout(armTimer); stopSpeaking(); stopRecognition(); stopKeepAlive();
+  if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock=null; }
+  buzz([220]);
+  setStatus("خاموش است","برای شروع دوباره، دکمه‌ی «شروع» بالای صفحه را بزن یا دکمه‌ی هندزفری را بزن");
+  $("liveText").textContent="—";
+  var sc=$("startCard"); if(sc) sc.hidden=false;
+}
+/* Start is an explicit button: nothing covers the page and no tap is
+   hijacked, so every control works on the first tap. (The old build had a
+   full-screen overlay button plus a document pointerdown interceptor that
+   swallowed the first tap on any control and, in WebViews without speech
+   recognition, re-ran the failing start path on every single tap.) */
+$("bigStartBtn").addEventListener("click", startAll);
+/* ---- Copy link: the page copies its OWN address (location.href), so the
+   user can paste it into Chrome's address bar. The Muse app menu has no
+   Share / Copy link entry, so this button is the only copy path. Visible
+   confirmation on success; if the Clipboard API is unavailable or denied,
+   the URL is shown in a selectable field for a long-press copy instead. */
+function copyPageLink(doneEl, urlBox, urlInput){
+  var url=location.href;
+  function showOk(){
+    if (doneEl){ doneEl.hidden=false; }
+    if (urlBox) urlBox.hidden=true;
+    announce("لینک کپی شد. حالا اپ کروم را باز کن و لینک را در نوار آدرس بچسبان.");
+    try{ buzz([60]); }catch(e){}
+  }
+  function showManual(){
+    if (urlInput) urlInput.value=url;
+    if (urlBox){ urlBox.hidden=false; if (urlInput){ try{ urlInput.focus(); urlInput.select(); }catch(e){} } }
+    if (doneEl){ doneEl.hidden=false; doneEl.textContent="کپی خودکار نشد؛ لینک در کادر زیر است، رویش لمس طولانی کن و Copy را بزن"; }
+  }
+  function legacy(){
+    try{
+      var ta=document.createElement("textarea");
+      ta.value=url; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var okCopy=false; try{ okCopy=document.execCommand("copy"); }catch(e){}
+      document.body.removeChild(ta);
+      if (okCopy) showOk(); else showManual();
+    }catch(e){ showManual(); }
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(showOk, legacy);
+  } else legacy();
+}
+$("copyLinkBtn").addEventListener("click", function(){ copyPageLink($("copyDone"), $("copyUrlBox"), $("copyUrlInput")); });
+var clb2=$("copyLinkBtn2");
+if (clb2) clb2.addEventListener("click", function(){ copyPageLink($("copyDone2"), $("copyUrlBox2"), $("copyUrlInput2")); });
+document.addEventListener("keydown", function(e){
+  if(e.key==="Escape" && speaking){ stopSpeaking(); if(shouldListen) startRecognition(); }
+});
+$("blindToggle").addEventListener("change", function(){ document.body.classList.toggle("blind-mode", blindMode()); });
+$("startBtn").addEventListener("click", startAll);
+$("orbBtn").addEventListener("click", function(){ if (shouldListen) stopAll(); else startAll(); });
+$("stopBtn").addEventListener("click", stopAll);
+$("testVoiceBtn").addEventListener("click", function(){
+  speak("سلام ریحان! من کژالم، دستیار صوتی درس سیستم‌عامل. اگر این صدا را در هندزفری شنیدی، یعنی خروجی صدا درست کار می‌کند. حالا بگو کژال و سؤالت را بپرس.");
+});
+$("repeatBtn").addEventListener("click", function(){ if (lastAnswer) speak(lastAnswer); });
+$("askBtn").addEventListener("click", function(){ answerQuestion($("textInput").value); });
+$("textInput").addEventListener("keydown", function(e){ if(e.key==="Enter") answerQuestion($("textInput").value); });
+document.querySelectorAll("[data-ask]").forEach(function(b){
+  b.addEventListener("click", function(){ answerQuestion(b.getAttribute("data-ask")); });
+});
+
+/* chips */
+CHIPS.forEach(function(c){
+  var b=document.createElement("button"); b.className="chip"; b.textContent=c;
+  b.addEventListener("click", function(){ answerQuestion(c); });
+  $("chips").appendChild(b);
+});
+/* samples */
+SAMPLES.forEach(function(s){
+  var d=document.createElement("details");
+  var sum=document.createElement("summary"); sum.textContent=s.t;
+  var body=document.createElement("div"); body.className="body";
+  var p=document.createElement("p"); p.textContent=s.d;
+  var btn=document.createElement("button"); btn.className="btn play"; btn.textContent="🔊 پخش جواب با صدا";
+  btn.addEventListener("click", function(){ answerQuestion(s.ask); });
+  body.appendChild(p); body.appendChild(btn);
+  d.appendChild(sum); d.appendChild(body);
+  $("samples").appendChild(d);
+});
+
+if (!SR) $("unsupportedBox").classList.add("show");
+/* Put screen-reader focus on the full-screen start button so TalkBack/VoiceOver lands on it first */
+window.addEventListener("load", function(){
+  var b=$("bigStartBtn");
+  if(b){ try{ b.focus({preventScroll:true}); }catch(e){} }
+  announce("دستیار صوتی سیستم‌عامل. برای شروع مکالمه، دکمه‌ی شروع بالای صفحه را بزن. دکمه‌های پخش جواب و تست صدا بدون شروع هم کار می‌کنند.");
+});
+</script>
+</body>
+</html>
