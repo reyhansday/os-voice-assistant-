@@ -53,6 +53,9 @@ body.speaking .orb{background:var(--amber)}
 .wake-hint{display:inline-block;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);
   border-radius:999px;padding:4px 16px;font-weight:800;font-size:.92rem;margin:4px 0 10px}
 .live-box{background:var(--surface2);border-radius:12px;padding:12px 14px;min-height:64px;text-align:right;margin-top:12px}
+.diag-box{background:var(--surface2);border:1px dashed var(--line);border-radius:12px;padding:10px 14px;margin-top:12px;text-align:right;font-size:.85rem}
+.diag-box .lbl{font-size:.78rem;color:var(--muted);font-weight:700}
+.diag-box .diag-text{white-space:pre-wrap}
 .live-box .lbl{font-size:.78rem;color:var(--muted);font-weight:700}
 .live-text{font-weight:600}
 .live-text.interim{color:var(--muted)}
@@ -201,6 +204,11 @@ body.blind-mode .btn{min-height:56px;font-size:1rem;padding:12px 22px}
     <div class="live-box" aria-live="polite">
       <div class="lbl">چیزی که می‌شنوم:</div>
       <div class="live-text" id="liveText">—</div>
+    </div>
+
+    <div class="diag-box">
+      <div class="lbl">عیب‌یابی — علت اینکه صدا کار نمی‌کند، اینجا نوشته می‌شود:</div>
+      <div class="diag-text" id="diagText">هنوز چیزی تست نشده است. دکمه‌ی «شروع» و بعد «تست صدا» را بزن.</div>
     </div>
 
     <div class="answer-box" id="answerBox">
@@ -631,9 +639,9 @@ function getVoicesNow(){ try{ return window.speechSynthesis ? (speechSynthesis.g
 function ensureVoices(cb){
   if (!window.speechSynthesis){ cb([]); return; }
   var vs=getVoicesNow();
-  if (vs.length){ cb(vs); return; }
+  if (vs.length){ diagVoices(vs); cb(vs); return; }
   var done=false;
-  function finish(){ if(done) return; done=true; cb(getVoicesNow()); }
+  function finish(){ if(done) return; done=true; var vs2=getVoicesNow(); diagVoices(vs2); cb(vs2); }
   try{
     speechSynthesis.addEventListener("voiceschanged", function h(){
       try{ speechSynthesis.removeEventListener("voiceschanged", h); }catch(e){}
@@ -975,6 +983,8 @@ function speakFailed(done){
      screen, with a beep and a long buzz so a blind user notices too, and
      leave the written answer visible in the answer box and the log. */
   finishSpeaking(done);
+  diagVoices();
+  diag("پخش صدا ناموفق: هر سه موتور (اِج، گوگل، گوشی) جواب ندادند.");
   beepPattern("error"); buzz([300]);
   setStatus("صدا پخش نشد","هر سه موتور صدا جواب ندادند: نه صدای اِج مایکروسافت، نه صدای گوگل و نه صدای گوشی. اتصال اینترنت را چک کن و دکمه‌ی «تست صدا» را دوباره بزن؛ جواب همین‌جا روی صفحه نوشته شده است.");
 }
@@ -995,10 +1005,12 @@ function speak(text, done){
   /* Edge TTS first: real Persian MP3 synthesized in the browser itself. */
   playEdgeTTS(text, done, function(){
     if (mySeq!==speakSeq) return;
+    diag("موتور اِج (مایکروسافت) وصل نشد؛ می‌روم سراغ گوگل.");
     /* Edge WebSocket failed: fall back to Google audio. */
     speaking=true; document.body.classList.add("speaking");
     playGoogleTTS(text, done, function(){
       if (mySeq!==speakSeq) return;
+      diag("موتور گوگل هم جواب نداد؛ می‌روم سراغ صدای گوشی.");
       /* Google audio failed on every chunk: fall back to the device voice. */
       if (!window.speechSynthesis){ speakFailed(done); return; }
       speaking=true; document.body.classList.add("speaking");
@@ -1066,6 +1078,19 @@ function setStatus(main, sub){
   $("orbLabel").textContent = speaking ? "در حال پخش" : (listening ? (armed? "سؤال را بگو" : "در حال گوش‌دادن") : "شروع");
   announce(main+(sub? " — "+sub : ""));
 }
+/* Diagnostics box: records the real reason when hearing or speaking fails,
+   so a failed test says WHY instead of staying silent. */
+var diagLines=[];
+function diag(msg){
+  var d=$("diagText"); if(!d) return;
+  diagLines.push(msg); if (diagLines.length>8) diagLines.shift();
+  d.textContent=diagLines.join("\n");
+}
+function diagVoices(vs){
+  vs=vs||getVoicesNow();
+  var fa=0, i; for(i=0;i<vs.length;i++){ if(/^fa([-_]|$)/i.test(vs[i].lang||"")) fa++; }
+  diag("صداهای گوشی: "+vs.length+" تا، فارسی: "+fa+" تا.");
+}
 function buildRecognition(){
   if (!SR) return null;
   var r=new SR();
@@ -1110,11 +1135,17 @@ function buildRecognition(){
     }
   };
   r.onerror=function(ev){
-    if (ev.error==="not-allowed" || ev.error==="service-not-allowed"){
+    var err=(ev && ev.error) ? String(ev.error) : "نامشخص";
+    diag("خطای شنیدن: "+err);
+    if (err==="not-allowed" || err==="service-not-allowed"){
       shouldListen=false; startedOnce=false;
       beepPattern("error"); buzz([300]);
       var sc=$("startCard"); if(sc) sc.hidden=false;
       setStatus("اجازه‌ی میکروفون داده نشد","دوباره دکمه‌ی «شروع» را بزن و این بار اجازه‌ی میکروفون را تأیید کن");
+    } else if (err==="network"){
+      setStatus("میکروفون به سرور گوگل وصل نشد","خطای شبکه در تشخیص گفتار؛ اینترنت یا وی‌پی‌ان را چک کن و دوباره «شروع» را بزن");
+    } else if (err==="audio-capture"){
+      setStatus("میکروفونی پیدا نشد","گوشی یا هندزفری میکروفون ندارد یا در دسترس نیست");
     }
   };
   return r;
@@ -1243,6 +1274,10 @@ if (!SR) $("unsupportedBox").classList.add("show");
 window.addEventListener("load", function(){
   var b=$("bigStartBtn");
   if(b){ try{ b.focus({preventScroll:true}); }catch(e){} }
+  if (navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:"microphone"}).then(function(p){ diag("اجازه‌ی میکروفون: "+p.state); }).catch(function(){ diag("اجازه‌ی میکروفون: نامشخص"); });
+  } else { diag("اجازه‌ی میکروفون: مرورگر گزارش نمی‌دهد."); }
+  if (window.speechSynthesis){ diagVoices(); } else { diag("صدای گوشی در این مرورگر نیست."); }
   announce("دستیار صوتی سیستم‌عامل. برای شروع مکالمه، دکمه‌ی شروع بالای صفحه را بزن. دکمه‌های پخش جواب و تست صدا بدون شروع هم کار می‌کنند.");
 });
 </script>
