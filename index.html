@@ -1086,6 +1086,20 @@ function diag(msg){
   diagLines.push(msg); if (diagLines.length>8) diagLines.shift();
   d.textContent=diagLines.join("\n");
 }
+/* Repeated recognition errors (e.g. network, on every restart) collapse into
+   one counted line, so they cannot flood the box and hide the voice lines. */
+var recErrLast="", recErrCount=0;
+function diagRecError(err){
+  var d=$("diagText");
+  if (err===recErrLast && diagLines.length>0 && diagLines[diagLines.length-1].indexOf("خطای شنیدن: "+err)===0){
+    recErrCount++;
+    diagLines[diagLines.length-1]="خطای شنیدن: "+err+" (×"+recErrCount+")";
+    if(d) d.textContent=diagLines.join("\n");
+  } else {
+    recErrLast=err; recErrCount=1;
+    diag("خطای شنیدن: "+err);
+  }
+}
 function diagVoices(vs){
   vs=vs||getVoicesNow();
   var fa=0, i; for(i=0;i<vs.length;i++){ if(/^fa([-_]|$)/i.test(vs[i].lang||"")) fa++; }
@@ -1136,14 +1150,14 @@ function buildRecognition(){
   };
   r.onerror=function(ev){
     var err=(ev && ev.error) ? String(ev.error) : "نامشخص";
-    diag("خطای شنیدن: "+err);
+    diagRecError(err);
     if (err==="not-allowed" || err==="service-not-allowed"){
       shouldListen=false; startedOnce=false;
       beepPattern("error"); buzz([300]);
       var sc=$("startCard"); if(sc) sc.hidden=false;
       setStatus("اجازه‌ی میکروفون داده نشد","دوباره دکمه‌ی «شروع» را بزن و این بار اجازه‌ی میکروفون را تأیید کن");
     } else if (err==="network"){
-      setStatus("میکروفون به سرور گوگل وصل نشد","خطای شبکه در تشخیص گفتار؛ اینترنت یا وی‌پی‌ان را چک کن و دوباره «شروع» را بزن");
+      setStatus("میکروفون به سرور گوگل وصل نشد","خطای شبکه در تشخیص گفتار؛ این اینترنت به سرور گفتار گوگل نمی‌رسد — سؤال را تایپ کن یا از دکمه‌های آماده استفاده کن");
     } else if (err==="audio-capture"){
       setStatus("میکروفونی پیدا نشد","گوشی یا هندزفری میکروفون ندارد یا در دسترس نیست");
     }
