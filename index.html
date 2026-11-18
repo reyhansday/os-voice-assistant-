@@ -984,9 +984,9 @@ function speakFailed(done){
      leave the written answer visible in the answer box and the log. */
   finishSpeaking(done);
   diagVoices();
-  diag("پخش صدا ناموفق: هر سه موتور (اِج، گوگل، گوشی) جواب ندادند.");
+  diag("پخش صدا ناموفق: هر سه موتور (گوگل، اِج، گوشی) جواب ندادند.");
   beepPattern("error"); buzz([300]);
-  setStatus("صدا پخش نشد","هر سه موتور صدا جواب ندادند: نه صدای اِج مایکروسافت، نه صدای گوگل و نه صدای گوشی. اتصال اینترنت را چک کن و دکمه‌ی «تست صدا» را دوباره بزن؛ جواب همین‌جا روی صفحه نوشته شده است.");
+  setStatus("صدا پخش نشد","هر سه موتور صدا جواب ندادند: نه صدای گوگل، نه صدای اِج مایکروسافت و نه صدای گوشی. اتصال اینترنت را چک کن و دکمه‌ی «تست صدا» را دوباره بزن؛ جواب همین‌جا روی صفحه نوشته شده است.");
 }
 function speak(text, done){
   speakSeq++;
@@ -999,19 +999,19 @@ function speak(text, done){
   edgeQueue=[]; edgeDone=null; edgeFailCb=null;
   if (window.speechSynthesis){ try{ speechSynthesis.cancel(); }catch(e){} }
   speaking=true; document.body.classList.add("speaking");
-  setStatus("در حال خواندن جواب…","جواب با صدای فارسی دل‌آرا در هندزفری خوانده می‌شود؛ برای قطع، بگو «کژال، ساکت»");
+  setStatus("در حال خواندن جواب…","جواب با صدای فارسی گوگل در هندزفری خوانده می‌شود؛ برای قطع، بگو «کژال، ساکت»");
   stopRecognition();
   var mySeq=speakSeq;
-  /* Edge TTS first: real Persian MP3 synthesized in the browser itself. */
-  playEdgeTTS(text, done, function(){
+  /* Google TTS first (per Reyhan): real Persian audio from Google. */
+  playGoogleTTS(text, done, function(){
     if (mySeq!==speakSeq) return;
-    diag("موتور اِج (مایکروسافت) وصل نشد؛ می‌روم سراغ گوگل.");
-    /* Edge WebSocket failed: fall back to Google audio. */
+    diag("موتور گوگل جواب نداد؛ می‌روم سراغ اِج.");
+    /* Google audio failed on every chunk: fall back to Edge TTS. */
     speaking=true; document.body.classList.add("speaking");
-    playGoogleTTS(text, done, function(){
+    playEdgeTTS(text, done, function(){
       if (mySeq!==speakSeq) return;
-      diag("موتور گوگل هم جواب نداد؛ می‌روم سراغ صدای گوشی.");
-      /* Google audio failed on every chunk: fall back to the device voice. */
+      diag("موتور اِج (مایکروسافت) هم وصل نشد؛ می‌روم سراغ صدای گوشی.");
+      /* Edge WebSocket failed: fall back to the device voice. */
       if (!window.speechSynthesis){ speakFailed(done); return; }
       speaking=true; document.body.classList.add("speaking");
       ensureVoices(function(vs){
