@@ -919,7 +919,7 @@ function edgeSynthesize(text, voiceName, ratePct){
       ws.binaryType="arraybuffer";
       var chunks=[], settled=false, timer=null;
       function fail(err){ if(settled) return; settled=true; if(timer) clearTimeout(timer); try{ ws.close(); }catch(e){} reject(err||new Error("edge-ws")); }
-      timer=setTimeout(function(){ fail(new Error("edge-timeout")); }, 20000);
+      timer=setTimeout(function(){ fail(new Error("edge-timeout")); }, 8000);
       ws.onerror=function(){ fail(new Error("edge-error")); };
       ws.onclose=function(){ if(!settled) fail(new Error("edge-closed")); };
       ws.onopen=function(){
@@ -1075,7 +1075,15 @@ function googleChunkFailed(mySeq){
   fbAttemptDone=true;
   if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; }
   if (fbHostIdx < GOOGLE_TTS_HOSTS.length-1){ fbHostIdx++; tryGoogleChunk(mySeq); return; }
-  fbFailedChunks++; fbIndex++; playNextGoogleChunk(mySeq);
+  fbFailedChunks++; fbIndex++;
+  if (fbIndex===1){
+    /* First chunk failed on BOTH Google hosts: the network path to Google is
+       down, not one bad chunk — do not waste ~7 s per remaining chunk. */
+    var f0=fbFailCb; fbDone=null; fbFailCb=null;
+    speaking=false; ttsMode=null; document.body.classList.remove("speaking");
+    if (f0) f0(); return;
+  }
+  playNextGoogleChunk(mySeq);
 }
 function tryGoogleChunk(mySeq){
   fbStarted=false; fbAttemptDone=false;
@@ -1186,11 +1194,13 @@ function speak(text, done){
   playGoogleTTS(text, done, function(){
     if (mySeq!==speakSeq) return;
     diag("موتور گوگل جواب نداد؛ می‌روم سراغ اِج.");
+    setStatus("در حال امتحان موتور بعدی…","گوگل جواب نداد؛ دارم صدای اِج مایکروسافت را امتحان می‌کنم.");
     /* Google audio failed on every chunk: fall back to Edge TTS. */
     speaking=true; document.body.classList.add("speaking");
     playEdgeTTS(text, done, function(){
       if (mySeq!==speakSeq) return;
       diag("موتور اِج (مایکروسافت) هم وصل نشد؛ می‌روم سراغ صدای گوشی.");
+      setStatus("در حال امتحان موتور بعدی…","اِج هم وصل نشد؛ دارم صدای خود گوشی را امتحان می‌کنم.");
       /* Edge WebSocket failed: fall back to the device voice. */
       if (!window.speechSynthesis){ speakFailed(done); return; }
       speaking=true; document.body.classList.add("speaking");
