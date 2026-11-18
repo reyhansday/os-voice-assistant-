@@ -1061,7 +1061,12 @@ function playGoogleTTS(text, done, failCb){
   var mySeq=speakSeq;
   fbAudio.onended=function(){ if (mySeq!==speakSeq) return; if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; } fbIndex++; playNextGoogleChunk(mySeq); };
   fbAudio.onplaying=function(){ fbStarted=true; fbAttemptDone=true; if (fbChunkTimer){ clearTimeout(fbChunkTimer); fbChunkTimer=null; } };
-  fbAudio.onplay=fbAudio.onplaying;
+  /* NOTE: do NOT bind onplay here. The 'play' event fires as soon as play()
+     is called, before any audio data arrives, and clearing the 3.5 s stall
+     watchdog on it left the page stuck forever on "در حال خواندن…" whenever
+     the MP3 never arrived (hanging connection, no error event). Only the real
+     'playing' event — data actually flowing — counts as started. */
+  fbAudio.onplay=null;
   fbAudio.onerror=function(){ if (mySeq!==speakSeq) return; googleChunkFailed(mySeq); };
   playNextGoogleChunk(mySeq);
 }
